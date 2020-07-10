@@ -1,4 +1,4 @@
-module RegisterForm exposing (view)
+module RegisterForm exposing (view, usernameValidators, emailValidators, tosValidators, formValidators)
 
 -----------
 
@@ -23,36 +23,36 @@ import Json.Encode as Encode
 
 
 
-usernameValidators : List Translations -> ValidatorSet String
-usernameValidators translations =
+usernameValidators : ValidatorSet String
+usernameValidators =
     DoValidation
-        [ Validator.isNotEmpty (tf translations "input-fail-req")
-        , Validator.hasMaxLength 20 (tf translations "username-fail-req")
-        , Validator.hasOnlyAlphanumericOrUnderscores (tf translations "username-fail-req")
+        [ Validator.isNotEmpty "input-fail-req"
+        , Validator.hasMaxLength 20 "username-fail-len"
+        , Validator.hasOnlyAlphanumericOrUnderscores "username-fail-chars"
         ]
 
-emailValidators : List Translations -> ValidatorSet String
-emailValidators translations =
+emailValidators : ValidatorSet String
+emailValidators =
     DoValidation
-        [ Validator.isNotEmpty (tf translations "input-fail-req")
-        , Validator.isValidEmail (tf translations "email-fail-invalid")
+        [ Validator.isNotEmpty "input-fail-req"
+        , Validator.isValidEmail "email-fail-invalid"
         ]
 
-tosValidators : List Translations -> ValidatorSet Bool
-tosValidators translations =
+tosValidators : ValidatorSet Bool
+tosValidators =
     DoValidation
-        [ Validator.isTrue (tf translations "tos-fail-decline") ]
+        [ Validator.isTrue "tos-fail-decline" ]
 
 
 {-| A validatorSet for the form. Basically just checking that every field is Valid.
 -}
-formValidators : List Translations -> ValidatorSet RegisterFields
-formValidators translations =
+formValidators : ValidatorSet RegisterFields
+formValidators =
     DoValidation
         [ ( (\r -> isValid r.username
                   && isValid r.email
                   && isValid r.tos )
-            , (tf translations "form-fail")
+            , "form-fail"
             )
         ]
 
@@ -61,12 +61,12 @@ applies the validations directly to the form.
 
 For what happens when the user clicks the Submit/Save button.
 -}
-allFieldValidations : List Translations -> RegisterFields -> RegisterFields
-allFieldValidations translations r =
+allFieldValidations : RegisterFields -> RegisterFields
+allFieldValidations r =
     r
-    |> (\v -> { v | username = Validatable.validateAndShowErr (usernameValidators translations) v.username } )
-    |> (\v -> { v | email = Validatable.validateAndShowErr (emailValidators translations) v.email } )
-    |> (\v -> { v | tos = Validatable.validateAndShowErr (tosValidators translations) v.tos } )
+    |> (\v -> { v | username = validateAndShowErr v.username } )
+    |> (\v -> { v | email = validateAndShowErr v.email } )
+    |> (\v -> { v | tos = validateAndShowErr v.tos } )
 
 
 
@@ -81,6 +81,7 @@ encoder form =
     Encode.object
         [ ( "username", Encode.string <| Form.getFieldVal .username form )
         , ( "email", Encode.string <| Form.getFieldVal .email form )
+        , ( "email", Encode.bool <| Form.getFieldVal .tos form )
         ]
 
 
@@ -102,73 +103,70 @@ encoder form =
 
 
 view : List Translations -> Form RegisterFields -> Html Msg
-view translations registerForm =
+view trans registerForm =
     Ui.Form.view []
-        [ Text.h1 (tf translations "form-title")
-        , Text.p (tf translations "form-desc")
+        [ Text.h1 (tf trans "form-title")
+        , Text.p (tf trans "form-desc")
 
         , Layout.divider
 
         , Input.textCounted 20 [ spellcheck False ]
             { id = "username"
             , required = True
-            , label = VisibleLabel (tf translations "username")
-            , helper = Just (tf translations "username-helper")
+            , label = VisibleLabel (tf trans "username")
+            , helper = Just (tf trans "username-helper")
             , placeholder = Nothing
 
             , onChange = RegisterFormChanged
             , form = registerForm
             , field = .username
             , setter = (\v x -> { v | username = x })
-            , formValidators = formValidators translations
-            , fieldValidators = usernameValidators translations
+            , translations = trans
             }
 
         , Input.email []
             { id = "email"
             , required = True
-            , label = VisibleLabel (tf translations "email")
-            , helper = Just (tf translations "email-helper")
-            , placeholder = Just (tf translations "email-placeholder")
+            , label = VisibleLabel (tf trans "email")
+            , helper = Just (tf trans "email-helper")
+            , placeholder = Just (tf trans "email-placeholder")
 
             , onChange = RegisterFormChanged
             , form = registerForm
             , field = .email
             , setter = (\v x -> { v | email = x })
-            , formValidators = formValidators translations
-            , fieldValidators = emailValidators translations
+            , translations = trans
             }
 
         , Layout.divider
 
-        , Text.p (tf translations "tos-lead-in")
+        , Text.p (tf trans "tos-lead-in")
 
         , Text.externalLinks
-            [ ("", (tf translations "tos-link"))
-            , ("https://parast.at/coc", (tf translations "rules-link"))
+            [ ("", (tf trans "tos-link"))
+            , ("https://parast.at/coc", (tf trans "rules-link"))
             ]
 
         , Input.checkbox []
             { id = "checkbox2"
             , required = True
-            , label = (tf translations "tos")
+            , label = (tf trans "tos")
             , helper = Nothing
 
             , onChange = RegisterFormChanged
             , form = registerForm
             , field = .tos
             , setter = (\v x -> { v | tos = x })
-            , formValidators = formValidators translations
-            , fieldValidators = tosValidators translations
+            , translations = trans
             }
 
 
         , Button.submit [ class "primary" ]
-            { label = (tf translations "sign-up-button")
+            { label = (tf trans "sign-up-button")
 
             , onChange = RegisterFormChanged
             , form = registerForm
-            , fieldValidations = allFieldValidations translations
-            , formValidation = formValidators translations
+            , fieldValidations = allFieldValidations
+            , translations = trans
             }
         ]

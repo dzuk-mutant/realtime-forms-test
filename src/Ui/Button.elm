@@ -33,11 +33,17 @@ more complex input structure than typical buttons.
 
 -}
 
+import Form exposing (Form, validate)
+import Form.Validatable as Validatable exposing (Validatable, isValid)
+import Form.Validator as Validator exposing (ValidatorSet)
 import Html exposing (Attribute, Html, button, div, node, span, text)
 import Html.Attributes exposing (class, classList, type_)
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onClick, onSubmit)
+import I18Next exposing (Translations)
 import Svg exposing (Svg)
+import Ui.Label exposing (liveHelperDisabled)
+import Ui.Symbol as Symbol exposing (ok)
 
 --------------------
 
@@ -181,7 +187,7 @@ type alias SubmitSaveStruct msg a =
     , onChange : Form a -> msg
     , form : Form a
     , fieldValidations : (a -> a)
-    , formValidation : ValidatorSet a
+    , translations : List Translations
     }
 
 {-| The fundamental structure for submit/save buttons.
@@ -190,7 +196,7 @@ submitSaveHelper : List (Html.Attribute msg)
     -> SubmitSaveStruct msg a
     -> SaveSubmitType
     -> Html msg
-submitSaveHelper attributes { label, onChange, form, fieldValidations, formValidation } btnType =
+submitSaveHelper attributes { label, onChange, form, fieldValidations, translations } btnType =
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
                              ]
@@ -204,7 +210,7 @@ submitSaveHelper attributes { label, onChange, form, fieldValidations, formValid
 
                                 -- stops the button from causing a page refresh when in a <form>
                                 , type_ "button"
-                                , onClick (onChange <| Form.validate fieldValidations formValidation form)
+                                , onClick (onChange <| Form.validate fieldValidations form)
                                 ]
                                 ++ attributes
                             )
@@ -216,7 +222,7 @@ submitSaveHelper attributes { label, onChange, form, fieldValidations, formValid
                     -- , div [ class "sym-area" ] [ Symbol.ok ]
                     ]
                 ]
-            ++ Ui.Label.liveHelperDisabled form
+            ++ Ui.Label.liveHelperDisabled translations form
             )
 
 {-| The button used at the end of blank forms that the user submits.

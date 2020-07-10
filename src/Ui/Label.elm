@@ -18,6 +18,7 @@ module Ui.Label exposing (label
 @docs liveHelperInvalid, liveHelperDisabled
 
 -}
+import I18Next exposing (Translations, tf)
 import Html exposing (Html, Attribute, div, span, label, text)
 import Html.Attributes exposing (class, classList, for)
 import Html.Attributes.Aria exposing (ariaLive, ariaHidden)
@@ -70,13 +71,31 @@ desc string =
 
 
 
+{-| Helper text that shows if an input is invalid because the data structure
+underlying it (of `Validatable` type), is `Invalid`.
+-}
+liveHelperInvalid : List Translations -> Validatable a r -> List (Html msg)
+liveHelperInvalid trans o =
+    [ liveHelperText [ class "invalid" ] trans o ]
+
+
+{-| Helper text that shows if a control is disabled because the data structure
+underlying it (of `Validatable` type), is `Invalid`.
+-}
+liveHelperDisabled : List Translations -> Validatable a r -> List (Html msg)
+liveHelperDisabled trans o =
+    [ liveHelperText [ class "disabled" ] trans o ]
+
 
 {-| The basics of a live text box that appears beneath controls
 and inputs, telling the user why something is either not valid
 or not usable.
+
+What comes from the Field validations are simply keys to the strings,
+so we need to dig them out through translations.
 -}
-liveHelperText : List (Attribute msg) -> Validatable a r -> Html msg
-liveHelperText attrs obj =
+liveHelperText : List (Attribute msg) -> List Translations -> Validatable a r -> Html msg
+liveHelperText attrs trans obj =
         let
             showContent = Validatable.ifShowErr obj
         in
@@ -90,30 +109,14 @@ liveHelperText attrs obj =
                 -- there's no error because error content doesn't become blank
                 -- if errors disappear so they can transition out.
                 [ Html.span [ ariaHidden <| not showContent ]
-                    [ Html.text obj.errMsg ]
+                    [ Html.text (tf trans obj.errMsg) ]
                 ]
-
-{-| Helper text that shows if an input is invalid because the data structure
-underlying it (of `Validatable` type), is `Invalid`.
--}
-liveHelperInvalid : Validatable a r -> List (Html msg)
-liveHelperInvalid o =
-    [ liveHelperText [ class "invalid" ] o ]
-
-
-{-| Helper text that shows if a control is disabled because the data structure
-underlying it (of `Validatable` type), is `Invalid`.
--}
-liveHelperDisabled : Validatable a r -> List (Html msg)
-liveHelperDisabled o =
-    [ liveHelperText [ class "disabled" ] o ]
-
 
 
 {-| Development debug of liveHelperText. TODO: Remove when live helper stuff has been streamlined enough.
 -}
-liveHelperTextDebug : List (Attribute msg) -> Validatable a r -> Html msg
-liveHelperTextDebug attrs obj =
+liveHelperTextDebug : List (Attribute msg) -> List Translations ->  Validatable a r -> Html msg
+liveHelperTextDebug attrs trans obj =
         let
             showContent = Validatable.ifShowErr obj
 
@@ -142,7 +145,7 @@ liveHelperTextDebug attrs obj =
                     -- there's no error because error content doesn't become blank
                     -- if errors disappear so they can transition out.
                     [ Html.span [ ariaHidden <| not showContent ]
-                        [ Html.text obj.errMsg ]
+                        [ Html.text (tf trans obj.errMsg) ]
                     ]
 
                 , span [] [ Html.text (debugBehavior ++ " " ++ debug ++ " " ++ debugValid) ]
