@@ -69,6 +69,7 @@ empty : ValidatorSet a -> a -> Field a
 empty valis val =
     { value = val
     , validators  = valis
+
     , validity = Unchecked
     , errMsg = ""
     , errVisibility = HideErr
@@ -100,6 +101,7 @@ prefilled : ValidatorSet a -> a -> Field a
 prefilled valis val =
     { value = val
     , validators  = valis
+    
     , validity = Valid
     , errMsg = ""
     , errVisibility = ShowErr

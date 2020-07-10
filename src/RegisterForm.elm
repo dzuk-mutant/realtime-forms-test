@@ -1,12 +1,14 @@
-module RegisterForm exposing (view, usernameValidators, emailValidators, tosValidators, formValidators)
-
------------
+module RegisterForm exposing ( RegisterForm
+                             , view
+                             , init
+                             )
 
 import Html exposing (Html, div, form)
 import Html.Attributes exposing (class, spellcheck)
 import Http
 import I18Next exposing (Translations, tf)
-import Form exposing (Form)
+import Form exposing (Form, empty)
+import Form.Field as Field exposing (Field, empty)
 import Form.Validatable as Validatable exposing (isValid, validateAndShowErr)
 import Form.Validator as Validator exposing ( ValidatorSet(..) )
 import Ui.Button as Button
@@ -14,13 +16,22 @@ import Ui.Form
 import Ui.Layout as Layout
 import Ui.Input as Input exposing ( OptionalLabel(..) )
 import Ui.Text as Text
-import Msg exposing (Msg(..))
-import Model exposing (RegisterFields)
 import Json.Encode as Encode
 
--------------------------------------------------------
 
 
+init = Form.empty formValidators  { username = Field.empty usernameValidators ""
+                                    , email = Field.empty emailValidators ""
+                                    , tos = Field.empty tosValidators False
+                                    }
+
+type alias RegisterForm = Form RegisterFields
+
+type alias RegisterFields =
+        { username : Field String
+         , email : Field String
+         , tos : Field Bool
+         }
 
 
 usernameValidators : ValidatorSet String
@@ -71,7 +82,7 @@ allFieldValidations r =
 
 {-| Encodes this form into JSON for sending to the server.
 -}
-encoder : Form RegisterFields -> Encode.Value
+encoder : RegisterForm -> Encode.Value
 encoder form =
     Encode.object
         [ ( "username", Encode.string <| Form.getFieldVal .username form )
@@ -97,8 +108,8 @@ encoder form =
 
 
 
-view : List Translations -> Form RegisterFields -> Html Msg
-view trans registerForm =
+view : List Translations -> (RegisterForm -> msg) -> RegisterForm -> Html msg
+view trans changeMsg form =
     Ui.Form.view []
         [ Text.h1 (tf trans "form-title")
         , Text.p (tf trans "form-desc")
@@ -112,8 +123,8 @@ view trans registerForm =
             , helper = Just (tf trans "username-helper")
             , placeholder = Nothing
 
-            , onChange = RegisterFormChanged
-            , form = registerForm
+            , onChange = changeMsg
+            , form = form
             , field = .username
             , setter = (\v x -> { v | username = x })
             , translations = trans
@@ -126,8 +137,8 @@ view trans registerForm =
             , helper = Just (tf trans "email-helper")
             , placeholder = Just (tf trans "email-placeholder")
 
-            , onChange = RegisterFormChanged
-            , form = registerForm
+            , onChange = changeMsg
+            , form = form
             , field = .email
             , setter = (\v x -> { v | email = x })
             , translations = trans
@@ -148,8 +159,8 @@ view trans registerForm =
             , label = (tf trans "tos")
             , helper = Nothing
 
-            , onChange = RegisterFormChanged
-            , form = registerForm
+            , onChange = changeMsg
+            , form = form
             , field = .tos
             , setter = (\v x -> { v | tos = x })
             , translations = trans
@@ -159,8 +170,8 @@ view trans registerForm =
         , Button.submit [ class "primary" ]
             { label = (tf trans "sign-up-button")
 
-            , onChange = RegisterFormChanged
-            , form = registerForm
+            , onChange = changeMsg
+            , form = form
             , fieldValidations = allFieldValidations
             , translations = trans
             }

@@ -7,7 +7,7 @@ import Form.Field as Field
 import Language exposing (ScriptDir(..))
 import Model exposing (Model)
 import Msg exposing (Msg(..))
-import RegisterForm exposing (emailValidators, tosValidators, usernameValidators, formValidators)
+import RegisterForm exposing (init)
 import Theme.Default exposing (darkTheme)
 import Ui exposing (LabelPreference(..), ScrollbarThickness(..), ShapeHinting(..))
 import View
@@ -49,10 +49,7 @@ initModel =
     , osFonts = False
     , theme = darkTheme
 
-    , registerForm = Form.empty formValidators  { username = Field.empty usernameValidators ""
-                                                , email = Field.empty emailValidators ""
-                                                , tos = Field.empty tosValidators False
-                                                }
+    , registerForm = RegisterForm.init
     }
 
 

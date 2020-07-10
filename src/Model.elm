@@ -1,14 +1,11 @@
 module Model exposing ( Model
-                      , RegisterFields
                       )
 
 import I18Next exposing (Translations)
-import Form exposing (Form)
-import Form.Field as Field exposing (Field)
 import Theme exposing (Theme)
 import Ui exposing (LabelPreference(..), ScrollbarThickness(..), ShapeHinting(..))
 import Language exposing (Language, LanguageList)
-
+import RegisterForm exposing (RegisterForm)
 
 
 
@@ -27,13 +24,5 @@ type alias Model =
     , theme : Theme
     , osFonts : Bool
 
-    , registerForm : Form RegisterFields
+    , registerForm : RegisterForm
     }
-
-
-
-type alias RegisterFields =
-        { username : Field String
-         , email : Field String
-         , tos : Field Bool
-         }

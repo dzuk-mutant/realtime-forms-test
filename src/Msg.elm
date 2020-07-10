@@ -1,10 +1,9 @@
 module Msg exposing (Msg(..))
 
-import Form exposing (Form)
 import I18Next exposing (Translations)
-import Model exposing (RegisterFields)
+import RegisterForm exposing (RegisterForm)
 import Http exposing (Error)
 
 type Msg
-    = RegisterFormChanged (Form RegisterFields)
+    = RegisterFormChanged (RegisterForm)
     | TranslationsLoaded (Result Http.Error Translations)

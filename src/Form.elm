@@ -250,6 +250,10 @@ type alias FieldSetter a b = b -> Field a -> b
 -}
 type alias FieldGetter a b = b -> Field a
 
+{-| A msg for changing a form.
+-}
+type alias FormChanger b msg = Form b -> msg
+
 {-| Gets a `Field` from a `Form` via a `FieldGetter` (ie. `.username`).
 -}
 getField : FieldGetter a b -> Form b -> Field a
@@ -305,6 +309,7 @@ updateField field form setter onChange =
     -- Form
     replaceValues form >>
     Validatable.validateAndHideErr >>
+
     onChange
 
 
@@ -373,10 +378,8 @@ updateFieldManually newValue field form setter onChange =
     -- Field
     |> Field.replaceValue field
     |> Validatable.validate
-
     -- Form values
     |> setter form.value
-
     -- Form
     |> replaceValues form
     |> Validatable.validateAndHideErr
@@ -406,14 +409,18 @@ updateFieldManuallyWithoutValidation newValue field form setter onChange =
     newValue
     -- Field
     |> Field.replaceValue field
-
     -- Form values
     |> setter form.value
-
     -- Form
     |> replaceValues form
 
     |> onChange
+
+
+
+
+
+
 
 {-| The series of basic data transformations that to be done to a `Form`
 the time the user performs an action that is meant to validate the form
