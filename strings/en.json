@@ -1,0 +1,29 @@
+{ "form-title" : "Test form!"
+
+, "form-desc" : "Granular form test~"
+
+
+, "username" : "Username"
+, "username-helper" : "It must be between 1 and 20 characters long and only contain alphanumeric characters or underscores."
+
+, "username-fail-len" : "Your username must be 20 or fewer characters long."
+, "username-fail-chars" : "Your username must only contain alphanumeric characters or underscores."
+
+, "email" : "Email"
+, "email-helper" : "We may send you emails to protect your account's security, or if you ask for a password reset."
+, "email-placeholder" : "email@example.com"
+, "email-fail-invalid" : "This is not a valid email address."
+
+
+, "tos-lead-in" : "To sign up for an account, you must agree to our terms of service and rules:"
+, "tos-link" : "Terms of service"
+, "rules-link" : "Rules"
+
+, "tos" : "I agree to the Rules and the Terms of Service of this server."
+, "tos-fail-decline" : "You must agree to the rules and terms of service of this server."
+
+, "sign-up-button" : "Sign up"
+, "form-fail" : "The above information is not filled in correctly."
+
+, "input-fail-req" : "This is a required field."
+}
