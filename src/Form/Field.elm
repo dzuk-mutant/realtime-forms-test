@@ -24,6 +24,7 @@ import Form.Validatable exposing ( Validity(..)
                                  , ErrBehavior(..)
                                  )
 
+import Form.Validator exposing (ValidatorSet(..))
 
 {-| A data type enclosing user inputs alongside validation information
 on that input.
@@ -32,6 +33,7 @@ on that input.
 -}
 type alias Field a =
     { value : a
+    , validators : ValidatorSet a
     , validity : Validity
     , errMsg : String
     , errVisibility : ErrVisibility
@@ -48,16 +50,17 @@ A `Field.empty` should always be used inside a `Form.empty`.
 
     initModel : Model
     initModel =
-        { registerForm = Form.empty { username = Field.empty ""
-                                    , email = Field.empty ""
-                                    , option = Field.empty Nothing
-                                    , tos = Field.empty False
-                                    }
+        { registerForm = Form.empty registerValidators { username = Field.empty usernameValidators ""
+                                                        , email = Field.empty emailValidators  ""
+                                                        , tos = Field.empty tosValidators False
+                                                        }
         }
+
 -}
-empty : a -> Field a
-empty val =
+empty : ValidatorSet a -> a -> Field a
+empty valis val =
     { value = val
+    , validators  = valis
     , validity = Unchecked
     , errMsg = ""
     , errVisibility = HideErr
@@ -77,16 +80,18 @@ A `Field.prefilled` should always be used inside a `Form.prefilled`.
 
     initModel : Model
     initModel =
-        { profileForm = Form.prefilled { displayName = Field.prefilled "Dzuk"
-                                       , bio = Field.prefilled "Big gay orc."
-                                       , botAccount = Field.prefilled False
-                                       , adultAccount = Field.prefilled False
-                                       }
+        { profileForm = Form.prefilled profileValidators { displayName = Field.prefilled displayNameValidators "Dzuk"
+                                                           , bio = Field.prefilled bioValidators "Big gay orc."
+                                                           , botAccount = Field.prefilled PassValidation False
+                                                           , adultAccount = Field.prefilled PassValidation False
+                                                           }
         }
+
 -}
-prefilled : a -> Field a
-prefilled val =
+prefilled : ValidatorSet a -> a -> Field a
+prefilled valis val =
     { value = val
+    , validators  = valis
     , validity = Valid
     , errMsg = ""
     , errVisibility = ShowErr

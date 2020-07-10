@@ -67,7 +67,7 @@ Functions for storing user input changes and validating them as they are being i
 
 
 import Form.Field as Field exposing (Field)
-import Form.Validator exposing (ValidatorSet)
+import Form.Validator exposing (ValidatorSet(..))
 import Form.Validatable as Validatable exposing ( Validity(..)
                                                 , ErrVisibility(..)
                                                 , ErrBehavior(..)
@@ -81,6 +81,8 @@ import Form.Validatable as Validatable exposing ( Validity(..)
 -}
 type alias Form a =
     { value : a
+    , validators : ValidatorSet a
+
     , validity : Validity
     , errMsg : String
     , errVisibility : ErrVisibility
@@ -99,17 +101,18 @@ A `Form.empty` should always be used with `Field.empty`.
 
     initModel : Model
     initModel =
-        { registerForm = Form.empty { username = Field.empty ""
-                                    , email = Field.empty ""
-                                    , option = Field.empty Nothing
-                                    , tos = Field.empty False
-                                    }
+        { registerForm = Form.empty registerValidators { username = Field.empty usernameValidators ""
+                                                        , email = Field.empty emailValidators  ""
+                                                        , tos = Field.empty tosValidators False
+                                                        }
         }
 
 -}
-empty : a -> Form a
-empty val =
+empty : ValidatorSet a -> a -> Form a
+empty valis val =
     { value = val
+    , validators  = valis
+
     , validity = Unchecked
     , errMsg = ""
     , errVisibility = HideErr
@@ -126,16 +129,18 @@ show immediately.
 
     initModel : Model
     initModel =
-        { profileForm = Form.prefilled { displayName = Field.prefilled "Dzuk"
-                                       , bio = Field.prefilled "Big gay orc."
-                                       , botAccount = Field.prefilled False
-                                       , adultAccount = Field.prefilled False
-                                       }
+        { profileForm = Form.prefilled profileValidators { displayName = Field.prefilled displayNameValidators "Dzuk"
+                                                           , bio = Field.prefilled bioValidators "Big gay orc."
+                                                           , botAccount = Field.prefilled PassValidation False
+                                                           , adultAccount = Field.prefilled PassValidation False
+                                                           }
         }
 -}
-prefilled : a -> Form a
-prefilled val =
+prefilled : ValidatorSet a -> a -> Form a
+prefilled valis val =
     { value = val
+    , validators  = valis
+
     , validity = Valid
     , errMsg = ""
     , errVisibility = HideErr
@@ -202,17 +207,16 @@ formValidators =
 ```
 -}
 validate : (a -> a)
-            -> ValidatorSet a
             -> Form a
             -> Form a
-validate fieldValidation validatorSet model =
+validate fieldValidation model =
     let
         -- validate each field individually first
         newVals = fieldValidation model.value
         newModel = { model | value = newVals }
     in
         -- validate the whole field structure
-        Validatable.validateAndToggleErr validatorSet newModel
+        Validatable.validateAndToggleErr newModel
 
 
 
@@ -287,22 +291,20 @@ validation on both the field and the form.
 ```
 
 -}
-updateField : ValidatorSet b
-            -> ValidatorSet a
-            -> Field a
+updateField : Field a
             -> Form b
             -> FieldSetter a b
             -> (Form b -> msg)
             -> (a -> msg)
-updateField formValidators fieldValidators field form setter onChange =
+updateField field form setter onChange =
     -- Field
     Field.replaceValue field >>
-    Validatable.validate fieldValidators >>
+    Validatable.validate >>
     -- Form values
     setter form.value >>
     -- Form
     replaceValues form >>
-    Validatable.validateAndHideErr formValidators >>
+    Validatable.validateAndHideErr >>
     onChange
 
 
@@ -361,25 +363,23 @@ need something passed to identify what has changed, like `onClick` in radio inpu
 
 -}
 updateFieldManually : a
-                    -> ValidatorSet b
-                    -> ValidatorSet a
                     -> Field a
                     -> Form b
                     -> FieldSetter a b
                     -> (Form b -> msg)
                     -> msg
-updateFieldManually value formValidators fieldValidators field form setter onChange =
-    value
+updateFieldManually newValue field form setter onChange =
+    newValue
     -- Field
     |> Field.replaceValue field
-    |> Validatable.validate fieldValidators
+    |> Validatable.validate
 
     -- Form values
     |> setter form.value
 
     -- Form
     |> replaceValues form
-    |> Validatable.validateAndHideErr formValidators
+    |> Validatable.validateAndHideErr
 
     |> onChange
 
@@ -397,13 +397,13 @@ therefore validation does not need to be performed when these certain types of
 inputs change.
 -}
 updateFieldManuallyWithoutValidation : a
-                    -> Field a
-                    -> Form b
-                    -> FieldSetter a b
-                    -> (Form b -> msg)
-                    -> msg
-updateFieldManuallyWithoutValidation value field form setter onChange =
-    value
+                                    -> Field a
+                                    -> Form b
+                                    -> FieldSetter a b
+                                    -> (Form b -> msg)
+                                    -> msg
+updateFieldManuallyWithoutValidation newValue field form setter onChange =
+    newValue
     -- Field
     |> Field.replaceValue field
 
@@ -436,20 +436,18 @@ like `onBlur`)
         [ Html.text field.value ]
 ```
 -}
-showAnyFieldErr : ValidatorSet b
-                -> ValidatorSet a
-                -> Field a
+showAnyFieldErr : Field a
                 -> Form b
                 -> FieldSetter a b
                 -> (Form b -> msg)
                 -> msg
-showAnyFieldErr formValidators fieldValidators field form setter onChange =
+showAnyFieldErr field form setter onChange =
     onChange
     -- Form
-    <| Validatable.validateAndHideErr formValidators
+    <| Validatable.validateAndHideErr
     <| replaceValues form
     -- Form value
     <| setter form.value
     -- Field
     <| Validatable.possiblyShowErr
-    <| Validatable.validate fieldValidators field
+    <| Validatable.validate field

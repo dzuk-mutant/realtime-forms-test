@@ -51,6 +51,7 @@ import Form.Validator as Validator exposing ( ValidatorSet(..))
 Validatable is an interface for a record that has a value with validation state and error handling behavior.
 
 - `value` : The value.
+- `validators` : The validators for use against the value.
 - `validity` : The validity of the value.
 - `errMsg` : The current error message related to the value.
 - `errVisibility` : Whether or not `errMsg` should be shown to the user.
@@ -63,6 +64,8 @@ performed on error messages.
 -}
 type alias Validatable a r =
     { r | value : a
+        , validators : ValidatorSet a
+
         , validity : Validity
         , errMsg : String
         , errVisibility : ErrVisibility
@@ -297,16 +300,15 @@ forceHideErr v =
 
 
 
-{-| Validates a `Validatable`'s value based on a given `ValidatorSet` and sets its
-`validity` based on the result.
+{-| Validates a `Validatable` and sets its `validity` based on the result.
 
 `errMsg` will always be set to what the last validation failure was, even if the
 `Validatable` is now `Valid`. This is so error messages can have clean animated transitions.
 -}
-validate : ValidatorSet a -> Validatable a r -> Validatable a r
-validate validatorSet v =
+validate : Validatable a r -> Validatable a r
+validate v =
     let
-        validation = Validator.evaluateSet validatorSet v.value
+        validation = Validator.evaluateSet v.validators v.value
         validity = boolToValidity <| Tuple.first validation
 
         -- keep the previous message if it's not invalid so live
@@ -323,26 +325,26 @@ validate validatorSet v =
 {-| Shorthand function that uses `validate`, then `possiblyShowErr`.
 
 -}
-validateAndShowErr : ValidatorSet a -> Validatable a r -> Validatable a r
-validateAndShowErr validatorSet v =
+validateAndShowErr : Validatable a r -> Validatable a r
+validateAndShowErr v =
     v
-    |> validate validatorSet
+    |> validate
     |> possiblyShowErr
 
 
 {-| Shorthand function that uses `validate`, then `possiblyHideErr`.
 -}
-validateAndHideErr : ValidatorSet a -> Validatable a r -> Validatable a r
-validateAndHideErr validatorSet v =
+validateAndHideErr : Validatable a r -> Validatable a r
+validateAndHideErr v =
     v
-    |> validate validatorSet
+    |> validate
     |> possiblyHideErr
 
 {-| Shorthand function that uses `validate`, then `possiblyShowErr` and then `possiblyHideErr`.
 -}
-validateAndToggleErr : ValidatorSet a -> Validatable a r -> Validatable a r
-validateAndToggleErr validatorSet v =
+validateAndToggleErr : Validatable a r -> Validatable a r
+validateAndToggleErr v =
     v
-    |> validate validatorSet
+    |> validate
     |> possiblyHideErr
     |> possiblyShowErr
