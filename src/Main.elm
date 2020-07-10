@@ -29,7 +29,7 @@ subscriptions model = Sub.none
 
 view : Model -> Document Msg
 view model =
-    { title = "Granular Forms Demo"
+    { title = "Realtime Forms Demo"
     , body = [View.view model]
     }
 

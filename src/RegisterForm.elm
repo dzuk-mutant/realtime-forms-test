@@ -7,9 +7,9 @@ import Html exposing (Html, div, form)
 import Html.Attributes exposing (class, spellcheck)
 import Http
 import I18Next exposing (Translations, tf)
-import Form exposing (Form, empty)
+import Form exposing (Form, empty, validateFieldInFormVal)
 import Form.Field as Field exposing (Field, empty)
-import Form.Validatable as Validatable exposing (isValid, validateAndShowErr)
+import Form.Validatable as Validatable exposing (isValid)
 import Form.Validator as Validator exposing ( ValidatorSet(..) )
 import Ui.Button as Button
 import Ui.Form
@@ -20,10 +20,8 @@ import Json.Encode as Encode
 
 
 
-init = Form.empty formValidators  { username = Field.empty usernameValidators ""
-                                    , email = Field.empty emailValidators ""
-                                    , tos = Field.empty tosValidators False
-                                    }
+
+
 
 type alias RegisterForm = Form RegisterFields
 
@@ -55,7 +53,10 @@ tosValidators =
         [ Validator.isTrue "tos-fail-decline" ]
 
 
-{-| A validatorSet for the form. Basically just checking that every field is Valid.
+
+{-| A validatorSet for the form.
+
+Basically just checking that every field is Valid.
 -}
 formValidators : ValidatorSet RegisterFields
 formValidators =
@@ -67,17 +68,34 @@ formValidators =
             )
         ]
 
+
+
+
+
 {-| Every field validation as a list of functions that
 applies the validations directly to the form.
 
-For what happens when the user clicks the Submit/Save button.
+Part of what happens when the user clicks the Submit/Save button.
 -}
 allFieldValidations : RegisterFields -> RegisterFields
 allFieldValidations r =
     r
-    |> (\v -> { v | username = validateAndShowErr v.username } )
-    |> (\v -> { v | email = validateAndShowErr v.email } )
-    |> (\v -> { v | tos = validateAndShowErr v.tos } )
+    |> validateFieldInFormVal .username (\v x -> { v | username = x })
+    |> validateFieldInFormVal .email (\v x -> { v | email = x })
+    |> validateFieldInFormVal .tos (\v x -> { v | tos = x })
+
+
+
+{-| Initialises an empty RegisterForm model for filling in.
+-}
+init = Form.empty formValidators allFieldValidations
+                    { username = Field.empty usernameValidators ""
+                    , email = Field.empty emailValidators ""
+                    , tos = Field.empty tosValidators False
+                    }
+
+
+
 
 
 {-| Encodes this form into JSON for sending to the server.
@@ -87,7 +105,7 @@ encoder form =
     Encode.object
         [ ( "username", Encode.string <| Form.getFieldVal .username form )
         , ( "email", Encode.string <| Form.getFieldVal .email form )
-        , ( "email", Encode.bool <| Form.getFieldVal .tos form )
+        , ( "tos", Encode.bool <| Form.getFieldVal .tos form )
         ]
 
 
@@ -154,7 +172,7 @@ view trans changeMsg form =
             ]
 
         , Input.checkbox []
-            { id = "checkbox2"
+            { id = "checkbox"
             , required = True
             , label = (tf trans "tos")
             , helper = Nothing
@@ -169,10 +187,8 @@ view trans changeMsg form =
 
         , Button.submit [ class "primary" ]
             { label = (tf trans "sign-up-button")
-
             , onChange = changeMsg
             , form = form
-            , fieldValidations = allFieldValidations
             , translations = trans
             }
         ]

@@ -186,7 +186,6 @@ type alias SubmitSaveStruct msg a =
 
     , onChange : Form a -> msg
     , form : Form a
-    , fieldValidations : (a -> a)
     , translations : List Translations
     }
 
@@ -196,7 +195,7 @@ submitSaveHelper : List (Html.Attribute msg)
     -> SubmitSaveStruct msg a
     -> SaveSubmitType
     -> Html msg
-submitSaveHelper attributes { label, onChange, form, fieldValidations, translations } btnType =
+submitSaveHelper attributes { label, onChange, form, translations } btnType =
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
                              ]
@@ -210,7 +209,7 @@ submitSaveHelper attributes { label, onChange, form, fieldValidations, translati
 
                                 -- stops the button from causing a page refresh when in a <form>
                                 , type_ "button"
-                                , onClick (onChange <| Form.validate fieldValidations form)
+                                , onClick (onChange <| Form.validate form)
                                 ]
                                 ++ attributes
                             )

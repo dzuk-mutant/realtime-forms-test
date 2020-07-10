@@ -5,6 +5,7 @@ module Form exposing ( Form
                      , replaceValues
 
                      , validate
+                     , validateFieldInFormVal
 
                      , FieldSetter
                      , FieldGetter
@@ -77,11 +78,16 @@ import Form.Validatable as Validatable exposing ( Validity(..)
 
 {-| A type that represents your whole form, including it's validation state.
 
-(See `Form.Validatable.Validatable` to understand this record structure.)
+This is almost the same as `Validatable.Validatable`, but with an extra fieldValidation field.
+This field is a function for basically triggering validation for all the form's fields
+that require validation (as that can't be done automatically).
+
+(See `Form.Validatable.Validatable` to understand the rest of this record structure.)
 -}
 type alias Form b =
     { value : b
     , validators : ValidatorSet b
+    , fieldValidation : b -> b
 
     , validity : Validity
     , errMsg : String
@@ -101,17 +107,19 @@ A `Form.empty` should always be used with `Field.empty`.
 
     initModel : Model
     initModel =
-        { registerForm = Form.empty registerValidators { username = Field.empty usernameValidators ""
-                                                        , email = Field.empty emailValidators  ""
-                                                        , tos = Field.empty tosValidators False
-                                                        }
+        { registerForm = Form.empty registerValidators registerFieldValidation
+                                        { username = Field.empty usernameValidators ""
+                                        , email = Field.empty emailValidators  ""
+                                        , tos = Field.empty tosValidators False
+                                        }
         }
 
 -}
-empty : ValidatorSet b -> b -> Form b
-empty valis val =
+empty : ValidatorSet b -> (b -> b) -> b -> Form b
+empty valis fieldValis val =
     { value = val
     , validators  = valis
+    , fieldValidation = fieldValis
 
     , validity = Unchecked
     , errMsg = ""
@@ -129,17 +137,19 @@ show immediately.
 
     initModel : Model
     initModel =
-        { profileForm = Form.prefilled profileValidators { displayName = Field.prefilled displayNameValidators "Dzuk"
-                                                           , bio = Field.prefilled bioValidators "Big gay orc."
-                                                           , botAccount = Field.prefilled PassValidation False
-                                                           , adultAccount = Field.prefilled PassValidation False
-                                                           }
+        { profileForm = Form.prefilled profileValidators profileFieldValidation
+                                       { displayName = Field.prefilled displayNameValidators "Dzuk"
+                                       , bio = Field.prefilled bioValidators "Big gay orc."
+                                       , botAccount = Field.prefilled PassValidation False
+                                       , adultAccount = Field.prefilled PassValidation False
+                                       }
         }
 -}
-prefilled : ValidatorSet b -> b -> Form b
-prefilled valis val =
+prefilled : ValidatorSet b -> (b -> b) -> b -> Form b
+prefilled valis fieldValis val =
     { value = val
     , validators  = valis
+    , fieldValidation = fieldValis
 
     , validity = Valid
     , errMsg = ""
@@ -174,21 +184,6 @@ replaceValues form val = { form | value = val }
 
 {-| Validates every `Field` of a `Form`, then validates the whole `Form` itself.
 
-### Validating the Fields
-In order to validate every Field of the form, you have to create a function (`a -> a`) that
-takes in the `Form`'s enclosed type, checks all the values, and returns a validated version.
-
-Because a Field can enclose any type, this has to be done manually and by hooking up
-`ValidatorSet`s you would have used when validating Fields individually, like below:
-
-```
-allFieldValidations : a -> a
-allFieldValidations f =
-    f
-    |> (\v -> { v | displayName = validateAndShowErr displayNameValidation v.displayName } )
-    |> (\v -> { v | bio = validateAndShowErr bioValidation v.bio } )
-```
-
 ### Validating the Form itself
 To validate the form itself, you need to create a ValidatorSet for the form
 that checks it's contents to make sure all Fields that are validated are correct.
@@ -206,14 +201,13 @@ formValidators =
         ]
 ```
 -}
-validate : (b -> b)
+validate : Form b
             -> Form b
-            -> Form b
-validate fieldValidation model =
+validate form =
     let
         -- validate each field individually first
-        newVals = fieldValidation model.value
-        newModel = { model | value = newVals }
+        newVals = form.fieldValidation form.value
+        newModel = { form | value = newVals }
     in
         -- validate the whole field structure
         Validatable.validateAndToggleErr newModel
@@ -222,14 +216,19 @@ validate fieldValidation model =
 
 
 
+{-| Validates a field in a form value (and shows errs depending on it's behaviour).
 
-
-
-
-
-
-
-
+Currently a weird stopgap to streamine fieldValidation in a Form type.
+-}
+validateFieldInFormVal : FieldGetter a b
+                -> FieldSetter a b
+                -> b
+                -> b
+validateFieldInFormVal getter setter formVal =
+    formVal
+    |> getter
+    |> Validatable.validateAndShowErr
+    |> setter formVal
 
 
 
@@ -289,7 +288,7 @@ validation on both the field and the form.
     Html.input
         (   [ class "ps--text-input"
             , type_ "text"
-            , onInput <| Form.updateField formValidators fieldValidators field form setter onChange
+            , onInput <| Form.updateField field form setter onChange
         )
         [ Html.text field.value ]
 ```
@@ -361,7 +360,7 @@ need something passed to identify what has changed, like `onClick` in radio inpu
     Html.input
         (   [ class "ps--text-input"
             , type_ "text"
-            , onInput <| Form.updateField formValidators fieldValidators field form setter onChange
+            , onInput <| Form.updateField field form setter onChange
         )
         [ Html.text field.value ]
 ```
@@ -436,8 +435,8 @@ like `onBlur`)
     Html.input
         (   [ class "ps--text-input"
             , type_ "text"
-            , onInput <| Form.updateField formValidators fieldValidators field form setter onChange
-            , onBlur <| Form.showAnyFieldErr formValidators fieldValidators field form setter onChange
+            , onInput <| Form.updateField field form setter onChange
+            , onBlur <| Form.showAnyFieldErr field form setter onChange
             ]
         )
         [ Html.text field.value ]
