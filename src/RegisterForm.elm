@@ -69,11 +69,6 @@ allFieldValidations r =
     |> (\v -> { v | tos = validateAndShowErr v.tos } )
 
 
-
-
-
-
-
 {-| Encodes this form into JSON for sending to the server.
 -}
 encoder : Form RegisterFields -> Encode.Value

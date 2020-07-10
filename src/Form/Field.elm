@@ -26,6 +26,13 @@ import Form.Validatable exposing ( Validity(..)
 
 import Form.Validator exposing (ValidatorSet(..))
 
+
+
+
+
+
+
+
 {-| A data type enclosing user inputs alongside validation information
 on that input.
 
@@ -34,6 +41,7 @@ on that input.
 type alias Field a =
     { value : a
     , validators : ValidatorSet a
+
     , validity : Validity
     , errMsg : String
     , errVisibility : ErrVisibility

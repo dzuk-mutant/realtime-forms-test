@@ -79,9 +79,9 @@ import Form.Validatable as Validatable exposing ( Validity(..)
 
 (See `Form.Validatable.Validatable` to understand this record structure.)
 -}
-type alias Form a =
-    { value : a
-    , validators : ValidatorSet a
+type alias Form b =
+    { value : b
+    , validators : ValidatorSet b
 
     , validity : Validity
     , errMsg : String
@@ -108,7 +108,7 @@ A `Form.empty` should always be used with `Field.empty`.
         }
 
 -}
-empty : ValidatorSet a -> a -> Form a
+empty : ValidatorSet b -> b -> Form b
 empty valis val =
     { value = val
     , validators  = valis
@@ -136,7 +136,7 @@ show immediately.
                                                            }
         }
 -}
-prefilled : ValidatorSet a -> a -> Form a
+prefilled : ValidatorSet b -> b -> Form b
 prefilled valis val =
     { value = val
     , validators  = valis
@@ -164,7 +164,7 @@ prefilled valis val =
 
     replaceValues initialForm newFormValue
 -}
-replaceValues : Form a -> a -> Form a
+replaceValues : Form b -> b -> Form b
 replaceValues form val = { form | value = val }
 
 
@@ -206,9 +206,9 @@ formValidators =
         ]
 ```
 -}
-validate : (a -> a)
-            -> Form a
-            -> Form a
+validate : (b -> b)
+            -> Form b
+            -> Form b
 validate fieldValidation model =
     let
         -- validate each field individually first
