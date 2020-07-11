@@ -15,7 +15,7 @@ view model =
     Ui.view model
         startupLoading
         startupFailed
-        (Page.floating [RegisterForm.view model.translations RegisterFormChanged model.registerForm])
+        (Page.floating [RegisterForm.view model.translations RegisterFormChanged RegisterFormSubmitted model.registerForm])
 
 
 

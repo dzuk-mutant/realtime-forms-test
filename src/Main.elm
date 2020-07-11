@@ -78,3 +78,4 @@ update msg model =
             )
 
         RegisterFormChanged f -> ( { model | registerForm = f } , Cmd.none )
+        RegisterFormSubmitted f -> ( { model | registerForm = f }, Cmd.none )

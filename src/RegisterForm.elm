@@ -1,6 +1,7 @@
 module RegisterForm exposing ( RegisterForm
                              , view
                              , init
+                             , submit
                              )
 
 import Html exposing (Html, div, form)
@@ -111,23 +112,27 @@ encoder form =
 
 {- For future development when there's a server to test with...
 -}
--- send : Register -> Cmd msg
--- send form =
---     Http.request
---         { method = "POST"
---         , headers = []
---         , url = ""
---         , body = Http.jsonBody <| encoder form
---         , expect = Http.expectWhatever FormSubmit
---         , timeout = Just (30 * 1000)
---         , tracker = Nothing
---         }
+submit : (Result Http.Error () -> msg) -> RegisterForm -> Cmd msg
+submit sendMsg form =
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = ""
+        , body = Http.jsonBody <| encoder form
+        , expect = Http.expectWhatever sendMsg
+        , timeout = Just (30 * 1000)
+        , tracker = Nothing
+        }
 
 
 
 
-view : List Translations -> (RegisterForm -> msg) -> RegisterForm -> Html msg
-view trans changeMsg form =
+view : List Translations
+        -> (RegisterForm -> msg)
+        -> (RegisterForm -> msg)
+        -> RegisterForm
+        -> Html msg
+view trans changeMsg submitMsg form =
     Ui.Form.view []
         [ Text.h1 (tf trans "form-title")
         , Text.p (tf trans "form-desc")
@@ -143,8 +148,8 @@ view trans changeMsg form =
 
             , onChange = changeMsg
             , form = form
-            , field = .username
-            , setter = (\v x -> { v | username = x })
+            , fieldGetter = .username
+            , fieldSetter = (\v x -> { v | username = x })
             , translations = trans
             }
 
@@ -157,8 +162,8 @@ view trans changeMsg form =
 
             , onChange = changeMsg
             , form = form
-            , field = .email
-            , setter = (\v x -> { v | email = x })
+            , fieldGetter = .email
+            , fieldSetter = (\v x -> { v | email = x })
             , translations = trans
             }
 
@@ -179,15 +184,14 @@ view trans changeMsg form =
 
             , onChange = changeMsg
             , form = form
-            , field = .tos
-            , setter = (\v x -> { v | tos = x })
+            , fieldGetter = .tos
+            , fieldSetter = (\v x -> { v | tos = x })
             , translations = trans
             }
 
-
         , Button.submit [ class "primary" ]
             { label = (tf trans "sign-up-button")
-            , onChange = changeMsg
+            , onChange = submitMsg
             , form = form
             , translations = trans
             }

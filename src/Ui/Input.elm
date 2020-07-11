@@ -37,10 +37,10 @@ This is only for screenreaders - it does not tell sighted users if it's required
 
 ## Data
 - `form`: The form model that this input is a part of.
-- `field`: The record access operator that points to the Field this input represents. (ie. `.username`)
+- `fieldGetter`: The record access operator that points to the Field this input represents. (ie. `.username`)
 - `options`: A list of options for inputs that inputs that are based on discrete options.
 - `validators`: A list of validator functions and error messages.
-- `setter`: A function to set this input's data in the form's model.
+- `fieldSetter`: A function to set this input's data in the form's model.
 
 ## Msg
 - `onChange`: The Msg that gets activated when the form changes.
@@ -171,8 +171,8 @@ type alias TextInputStruct msg b =
     , placeholder : Maybe String
 
     , form : Form b
-    , field : Form.FieldGetter String b
-    , setter : Form.FieldSetter String b
+    , fieldGetter : Form.FieldGetter String b
+    , fieldSetter : Form.FieldSetter String b
     , translations : List Translations
     }
 
@@ -183,9 +183,9 @@ basicTextInput : List (Attribute msg)
         -> Maybe Int
         -> TextInputType
         -> Html msg
-basicTextInput attrs { id, required, label, helper, placeholder, onChange, form, field, setter, translations } counter inputType =
+basicTextInput attrs { id, required, label, helper, placeholder, onChange, form, fieldGetter, fieldSetter, translations } counter inputType =
     let
-        realField = getField field form
+        realField = getField fieldGetter form
 
         maybePlaceholder = case placeholder of
             Just p -> [ Html.Attributes.placeholder p ]
@@ -205,8 +205,8 @@ basicTextInput attrs { id, required, label, helper, placeholder, onChange, form,
 
         commonInputAttrs =
             [ value realField.value
-            , onInput <| Form.updateField realField form setter onChange
-            , onBlur <| Form.showAnyFieldErr realField form setter onChange
+            , onInput <| Form.updateField realField form fieldSetter onChange
+            , onBlur <| Form.showAnyFieldErr realField form fieldSetter onChange
             , Html.Attributes.id id
             , ariaRequired required
             , classList [ ( "invalid", Validatable.ifShowErr realField )
@@ -364,15 +364,15 @@ checkbox : List (Attribute msg)
 
            , onChange : Form b -> msg
            , form : Form b
-           , field : Form.FieldGetter Bool b
-           , setter : Form.FieldSetter Bool b
+           , fieldGetter : Form.FieldGetter Bool b
+           , fieldSetter : Form.FieldSetter Bool b
            , translations : List Translations
            }
         -> Html msg
 
-checkbox attrs { id, required, label, helper, onChange, form, field, setter, translations } =
+checkbox attrs { id, required, label, helper, onChange, form, fieldGetter, fieldSetter, translations } =
     let
-        realField = getField field form
+        realField = getField fieldGetter form
     in
         Html.fieldset [ class "ps--form-block"]
             [ Html.div
@@ -389,8 +389,8 @@ checkbox attrs { id, required, label, helper, onChange, form, field, setter, tra
                     [ type_ "checkbox"
                     , class "ps--checkbox"
                     , Html.Attributes.id id
-                    , onCheck <| Form.updateField realField form setter onChange
-                    , onBlur <| Form.showAnyFieldErr realField form setter onChange
+                    , onCheck <| Form.updateField realField form fieldSetter onChange
+                    , onBlur <| Form.showAnyFieldErr realField form fieldSetter onChange
                     , checked realField.value
                     , ariaRequired required
                     , ariaLabel label

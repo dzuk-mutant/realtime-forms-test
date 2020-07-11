@@ -6,4 +6,5 @@ import Http exposing (Error)
 
 type Msg
     = RegisterFormChanged (RegisterForm)
+    | RegisterFormSubmitted (RegisterForm)
     | TranslationsLoaded (Result Http.Error Translations)
