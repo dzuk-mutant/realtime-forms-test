@@ -15,6 +15,10 @@ module Form.Validatable exposing ( Validatable
                                  , forceShowErr
                                  , forceHideErr
 
+                                 , enableUpdates
+                                 , disableUpdates
+                                 , toggleUpdates
+
                                  , validate
                                  , validateAndShowErr
                                  , validateAndHideErr
@@ -33,7 +37,10 @@ Checking a `Validatable`'s contents and converting them from certain types.
 
 # Changing error visibility
 Making error messages potentially show or hide.
-@docs possiblyShowErr, possiblyHideErr, forceShowErr, forceHideErr
+@docs possiblyShowErr, possiblyHideErr, possiblyToggleErr, forceShowErr, forceHideErr
+
+# Changing whether the user can update it or not
+@docs enableUpdates, disableUpdates, toggleUpdates
 
 # Validation
 @docs validate
@@ -44,7 +51,8 @@ These functions combine validation with error visibility functions.
 -}
 
 
-import Form.Validator as Validator exposing ( ValidatorSet(..))
+import Form.Validator as Validator exposing (ValidatorSet(..))
+import Svg.Attributes exposing (r)
 
 
 {-| This is the basis for the `Form` and `Field` data types.
@@ -204,15 +212,6 @@ boolToValidity bool =
 
 
 
-
-
-
-
-
-
-
-
-
 {-| Makes a Validatable show its `errMsg` if it's `validity`
 meets certain criteria set out by it's `errBehavior`:
 
@@ -297,6 +296,28 @@ forceHideErr v =
 
 
 
+{-| Enables updates in the validatable.
+-}
+enableUpdates : Validatable a r -> Validatable a r
+enableUpdates v = { v | updatesEnabled = True }
+
+{-| Disables updates in the validatable.
+-}
+disableUpdates : Validatable a r -> Validatable a r
+disableUpdates v = { v | updatesEnabled = False }
+
+{-| Toggles updates in the validatable.
+-}
+toggleUpdates : Validatable a r -> Validatable a r
+toggleUpdates v = { v | updatesEnabled = not v.updatesEnabled }
+
+
+
+
+
+
+
+
 
 
 
@@ -306,24 +327,9 @@ forceHideErr v =
 
 `errMsg` will always be set to what the last validation failure was, even if the
 `Validatable` is now `Valid`. This is so error messages can have clean animated transitions.
-
-If updates are disabled, validation will not occur at all.
 -}
 validate : Validatable a r -> Validatable a r
 validate v =
-    case v.updatesEnabled of
-        False -> v
-        True -> validateActual v
-
-
-
-
-
-
-{-| Internal helper function that does the actual validation process.
--}
-validateActual : Validatable a r -> Validatable a r
-validateActual v =
     let
         validation = Validator.evaluateSet v.validators v.value
         validity = boolToValidity <| Tuple.first validation
@@ -337,6 +343,10 @@ validateActual v =
         v
         |> (\w -> { w | validity = validity })
         |> (\w -> { w | errMsg = errMsg })
+
+
+
+
 
 
 {-| Shorthand function that uses `validate`, then `possiblyShowErr`.

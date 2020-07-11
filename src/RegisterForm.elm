@@ -88,7 +88,7 @@ allFieldValidations r =
 {-| Initialises an empty RegisterForm model for filling in.
 -}
 init = Form.empty formValidators allFieldValidations
-                    { username = Field.empty usernameValidators ""
+                    { username = Field.prefilled usernameValidators ""
                     , email = Field.empty emailValidators ""
                     , tos = Field.empty tosValidators False
                     }

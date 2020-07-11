@@ -50,7 +50,7 @@ Basically lenses. I'm so sorry.
 
 
 
-# Event handlers for inputs
+# Update functions for input event handlers
 Functions for storing user input changes and validating them as they are being inputted.
 
 ## Designed for event handlers like onInput
@@ -60,6 +60,7 @@ Functions for storing user input changes and validating them as they are being i
 @docs updateFieldManually, updateFieldManuallyWithoutValidation
 
 ## Functions that don't change values, only metadata
+Useful for event handlers like onBlur.
 @docs showAnyFieldErr
 
 
@@ -278,6 +279,24 @@ getFieldVal accessor form =
 
 
 
+{-| Checks whether a form can be updated at all.
+-}
+isUpdatable : Form b -> Bool
+isUpdatable form = form.updatesEnabled
+
+{-| Checks whether a field in a form can be updated at all.
+-}
+isFieldUpdatable : Form b -> Field a -> Bool
+isFieldUpdatable form field = form.updatesEnabled && form.updatesEnabled
+
+
+{-| Absorb's an input message and does nothing with it,
+only returning the existing form (inputted).
+-}
+dontUpdateField : Form b -> a -> Form b
+dontUpdateField form val = form
+
+
 
 -- event handlers -------------------------------------------------
 
@@ -299,6 +318,7 @@ validation on both the field and the form.
         [ Html.text field.value ]
 ```
 
+Will make no change or validation if either the form or field has been disabled.
 -}
 updateField : Field a
             -> Form b
@@ -306,16 +326,19 @@ updateField : Field a
             -> (Form b -> msg)
             -> (a -> msg)
 updateField field form setter onChange =
-    -- Field
-    Field.replaceValue field form.updatesEnabled >>
-    Validatable.validate >>
-    -- Form values
-    setter form.value >>
-    -- Form
-    replaceValues form >>
-    Validatable.validateAndHideErr >>
+    case isFieldUpdatable form field of
+        False -> dontUpdateField form >> onChange
+        True ->
+            -- Field
+            Field.replaceValue field form.updatesEnabled >>
+            Validatable.validate >>
+            -- Form values
+            setter form.value >>
+            -- Form
+            replaceValues form >>
+            Validatable.validateAndHideErr >>
 
-    onChange
+            onChange
 
 
 
@@ -333,8 +356,7 @@ inputs change.
 - `a` is the `Field` data type.
 - `b` is the `Form` data type.
 
-
-
+Will make no change if either the form or field has been disabled.
 -}
 updateFieldWithoutValidation : Field a
                             -> Form b
@@ -342,13 +364,16 @@ updateFieldWithoutValidation : Field a
                             -> (Form b -> msg)
                             -> (a -> msg)
 updateFieldWithoutValidation field form setter onChange =
-    -- Field
-    Field.replaceValue field form.updatesEnabled >>
-    -- Form values
-    setter form.value >>
-    -- Form
-    replaceValues form >>
-    onChange
+    case isFieldUpdatable form field of
+        False -> dontUpdateField form >> onChange
+        True ->
+            -- Field
+            Field.replaceValue field form.updatesEnabled >>
+            -- Form values
+            setter form.value >>
+            -- Form
+            replaceValues form >>
+            onChange
 
 
 
@@ -371,6 +396,7 @@ need something passed to identify what has changed, like `onClick` in radio inpu
         [ Html.text field.value ]
 ```
 
+Will make no change or validation if either the form or field has been disabled.
 -}
 updateFieldManually : a
                     -> Field a
@@ -379,17 +405,20 @@ updateFieldManually : a
                     -> (Form b -> msg)
                     -> msg
 updateFieldManually newValue field form setter onChange =
-    newValue
-    -- Field
-    |> Field.replaceValue field form.updatesEnabled
-    |> Validatable.validate
-    -- Form values
-    |> setter form.value
-    -- Form
-    |> replaceValues form
-    |> Validatable.validateAndHideErr
+    case isFieldUpdatable form field of
+        False -> onChange form -- dont update or validate
+        True ->
+            newValue
+            -- Field
+            |> Field.replaceValue field form.updatesEnabled
+            |> Validatable.validate
+            -- Form values
+            |> setter form.value
+            -- Form
+            |> replaceValues form
+            |> Validatable.validateAndHideErr
 
-    |> onChange
+            |> onChange
 
 
 
@@ -403,6 +432,8 @@ The reason this doesn't validate is because some
 inputs (like radio buttons) should not need to be validated,
 therefore validation does not need to be performed when these certain types of
 inputs change.
+
+Will make no change if either the form or field has been disabled.
 -}
 updateFieldManuallyWithoutValidation : a
                                     -> Field a
@@ -411,15 +442,18 @@ updateFieldManuallyWithoutValidation : a
                                     -> (Form b -> msg)
                                     -> msg
 updateFieldManuallyWithoutValidation newValue field form setter onChange =
-    newValue
-    -- Field
-    |> Field.replaceValue field form.updatesEnabled
-    -- Form values
-    |> setter form.value
-    -- Form
-    |> replaceValues form
+    case isFieldUpdatable form field of
+        False -> onChange form -- dont update
+        True ->
+            newValue
+            -- Field
+            |> Field.replaceValue field form.updatesEnabled
+            -- Form values
+            |> setter form.value
+            -- Form
+            |> replaceValues form
 
-    |> onChange
+            |> onChange
 
 
 
@@ -432,7 +466,7 @@ the time the user performs an action that is meant to validate the form
 and trigger any potential validation errors to show.
 
 (This should be used in event handlers that don't give a value,
-like `onBlur`)
+like `onBlur`.)
 
 - `a` is the `Field` data type.
 - `b` is the `Form` data type.
@@ -447,6 +481,8 @@ like `onBlur`)
         )
         [ Html.text field.value ]
 ```
+
+Will make no changes if either the form or field has been disabled.
 -}
 showAnyFieldErr : Field a
                 -> Form b
@@ -454,12 +490,29 @@ showAnyFieldErr : Field a
                 -> (Form b -> msg)
                 -> msg
 showAnyFieldErr field form setter onChange =
-    onChange
-    -- Form
-    <| Validatable.validateAndHideErr
-    <| replaceValues form
-    -- Form value
-    <| setter form.value
-    -- Field
-    <| Validatable.possiblyShowErr
-    <| Validatable.validate field
+    case isFieldUpdatable form field of
+        False -> onChange form -- dont update or validate
+        True ->
+            onChange
+            -- Form
+            <| Validatable.validateAndHideErr
+            <| replaceValues form
+            -- Form value
+            <| setter form.value
+            -- Field
+            <| Validatable.possiblyShowErr
+            <| Validatable.validate field
+
+
+
+
+
+--
+-- {-| Starts the process of submitting the form.
+-- -}
+-- submit : Form a
+--             -> (Form b -> msg)
+--             -> (a -> msg)
+-- submit form submitMsg =
+--     form >>
+--     Validatable.disableUpdates
