@@ -58,6 +58,7 @@ tosValidators =
 {-| A validatorSet for the form.
 
 Basically just checking that every field is Valid.
+TODO: Try to make validating every field that requires it automatic???
 -}
 formValidators : ValidatorSet RegisterFields
 formValidators =
@@ -70,13 +71,10 @@ formValidators =
         ]
 
 
+{-|  Part of what happens when the user clicks the Submit/Save button.
 
-
-
-{-| Every field validation as a list of functions that
-applies the validations directly to the form.
-
-Part of what happens when the user clicks the Submit/Save button.
+A sequence of validating every field that requires validation.
+TODO: Try to make this automatic instead of manual???
 -}
 allFieldValidations : RegisterFields -> RegisterFields
 allFieldValidations r =

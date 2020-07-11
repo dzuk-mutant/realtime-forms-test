@@ -11,6 +11,7 @@ module Form.Validatable exposing ( Validatable
 
                                  , possiblyShowErr
                                  , possiblyHideErr
+                                 , possiblyToggleErr
                                  , forceShowErr
                                  , forceHideErr
 
@@ -70,6 +71,8 @@ type alias Validatable a r =
         , errMsg : String
         , errVisibility : ErrVisibility
         , errBehavior : ErrBehavior
+
+        , updatesEnabled : Bool
     }
 
 
@@ -262,6 +265,14 @@ possiblyHideErr v =
     in
         { v | errVisibility = maybeShowErr }
 
+{-| Convenience function that uses possiblyHideErr, then possiblyShowErr.
+-}
+possiblyToggleErr : Validatable a r -> Validatable a r
+possiblyToggleErr v =
+    v
+    |> possiblyHideErr
+    |> possiblyShowErr
+
 
 {-| Sets a `Validatable`'s `errVisibility` to `ShowErr`, regardless of its `errBehavior`.
 -}
@@ -291,22 +302,28 @@ forceHideErr v =
 
 
 
-
-
-
-
-
-
-
-
-
 {-| Validates a `Validatable` and sets its `validity` based on the result.
 
 `errMsg` will always be set to what the last validation failure was, even if the
 `Validatable` is now `Valid`. This is so error messages can have clean animated transitions.
+
+If updates are disabled, validation will not occur at all.
 -}
 validate : Validatable a r -> Validatable a r
 validate v =
+    case v.updatesEnabled of
+        False -> v
+        True -> validateActual v
+
+
+
+
+
+
+{-| Internal helper function that does the actual validation process.
+-}
+validateActual : Validatable a r -> Validatable a r
+validateActual v =
     let
         validation = Validator.evaluateSet v.validators v.value
         validity = boolToValidity <| Tuple.first validation
@@ -340,11 +357,10 @@ validateAndHideErr v =
     |> validate
     |> possiblyHideErr
 
-{-| Shorthand function that uses `validate`, then `possiblyShowErr` and then `possiblyHideErr`.
+{-| Shorthand function that uses `validate`, then `possiblyToggleErr`.
 -}
 validateAndToggleErr : Validatable a r -> Validatable a r
 validateAndToggleErr v =
     v
     |> validate
-    |> possiblyHideErr
-    |> possiblyShowErr
+    |> possiblyToggleErr

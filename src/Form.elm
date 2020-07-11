@@ -68,12 +68,9 @@ Functions for storing user input changes and validating them as they are being i
 
 
 import Form.Field as Field exposing (Field)
+import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), validate)
 import Form.Validator exposing (ValidatorSet(..))
-import Form.Validatable as Validatable exposing ( Validity(..)
-                                                , ErrVisibility(..)
-                                                , ErrBehavior(..)
-                                                , validate
-                                                )
+import Json.Decode exposing (field)
 
 
 {-| A type that represents your whole form, including it's validation state.
@@ -93,6 +90,8 @@ type alias Form b =
     , errMsg : String
     , errVisibility : ErrVisibility
     , errBehavior : ErrBehavior
+
+    , updatesEnabled : Bool
     }
 
 
@@ -125,6 +124,8 @@ empty valis fieldValis val =
     , errMsg = ""
     , errVisibility = HideErr
     , errBehavior = TriggeredValidation
+
+    , updatesEnabled = True
     }
 
 {-| Creates a `Form` that is set up in a state which assumes
@@ -155,6 +156,8 @@ prefilled valis fieldValis val =
     , errMsg = ""
     , errVisibility = HideErr
     , errBehavior = AlwaysValidation -- prefilled forms should keep the user more clued in to errors.
+
+    , updatesEnabled = True
     }
 
 
@@ -175,7 +178,10 @@ prefilled valis fieldValis val =
     replaceValues initialForm newFormValue
 -}
 replaceValues : Form b -> b -> Form b
-replaceValues form val = { form | value = val }
+replaceValues form val =
+    case form.updatesEnabled of
+        False -> form
+        True -> { form | value = val }
 
 
 
@@ -301,7 +307,7 @@ updateField : Field a
             -> (a -> msg)
 updateField field form setter onChange =
     -- Field
-    Field.replaceValue field >>
+    Field.replaceValue field form.updatesEnabled >>
     Validatable.validate >>
     -- Form values
     setter form.value >>
@@ -337,7 +343,7 @@ updateFieldWithoutValidation : Field a
                             -> (a -> msg)
 updateFieldWithoutValidation field form setter onChange =
     -- Field
-    Field.replaceValue field >>
+    Field.replaceValue field form.updatesEnabled >>
     -- Form values
     setter form.value >>
     -- Form
@@ -375,7 +381,7 @@ updateFieldManually : a
 updateFieldManually newValue field form setter onChange =
     newValue
     -- Field
-    |> Field.replaceValue field
+    |> Field.replaceValue field form.updatesEnabled
     |> Validatable.validate
     -- Form values
     |> setter form.value
@@ -407,7 +413,7 @@ updateFieldManuallyWithoutValidation : a
 updateFieldManuallyWithoutValidation newValue field form setter onChange =
     newValue
     -- Field
-    |> Field.replaceValue field
+    |> Field.replaceValue field form.updatesEnabled
     -- Form values
     |> setter form.value
     -- Form

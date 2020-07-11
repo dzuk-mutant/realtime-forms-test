@@ -1,6 +1,7 @@
 module Form.Field exposing ( Field
                           , empty
                           , prefilled
+                          , prefilledDisabled
 
                           , getValue
                           , replaceValue
@@ -46,6 +47,8 @@ type alias Field a =
     , errMsg : String
     , errVisibility : ErrVisibility
     , errBehavior : ErrBehavior
+
+    , updatesEnabled : Bool
     }
 
 {-| Creates a `Field` that is set up in a state which assumes
@@ -74,6 +77,8 @@ empty valis val =
     , errMsg = ""
     , errVisibility = HideErr
     , errBehavior = RevealedValidation
+
+    , updatesEnabled = True
     }
 
 
@@ -101,11 +106,29 @@ prefilled : ValidatorSet a -> a -> Field a
 prefilled valis val =
     { value = val
     , validators  = valis
-    
+
     , validity = Valid
     , errMsg = ""
     , errVisibility = ShowErr
     , errBehavior = AlwaysValidation
+
+    , updatesEnabled = True
+    }
+
+
+{-| Creates a prefilled `Field` that is disabled.
+-}
+prefilledDisabled : ValidatorSet a -> a -> Field a
+prefilledDisabled valis val =
+    { value = val
+    , validators  = valis
+
+    , validity = Valid
+    , errMsg = ""
+    , errVisibility = ShowErr
+    , errBehavior = AlwaysValidation
+
+    , updatesEnabled = False
     }
 
 
@@ -118,12 +141,28 @@ prefilled valis val =
 getValue : Field a -> a
 getValue field = field.value
 
+
+
 {-| Take a Field, and replaces it's value with the one given.
 
     fieldy = Field.prefilled "Hi"
 
     getValue fieldy == "Hi"
     getValue <| replaceValue fieldy "Bye" == "Bye"
+
+    Requires that updates are enabled on both the field
+    itself and the form encapsulating it (represented
+    by the bool input). If updates are disabled on either,
+    then the Field will not update.
 -}
-replaceValue : Field a -> a -> Field a
-replaceValue field val = { field | value = val }
+replaceValue : Field a -> Bool -> a -> Field a
+replaceValue field formUpdatesEnabled val =
+    case formUpdatesEnabled of
+        False ->
+            field
+        True ->
+            case field.updatesEnabled of
+                False ->
+                    field
+                True ->
+                    { field | value = val }
