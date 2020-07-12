@@ -5,18 +5,23 @@ module Form exposing ( Form
                      , replaceValues
 
                      , validate
-                     , validateFieldInFormVal
+                     , validateField
 
                      , FieldSetter
                      , FieldGetter
                      , getField
                      , getFieldVal
 
+                     , isUpdatable
+                     , isFieldUpdatable
+
                      , updateField
                      , updateFieldWithoutValidation
                      , updateFieldManually
                      , updateFieldManuallyWithoutValidation
                      , showAnyFieldErr
+
+                     , submit
                      )
 
 {-| Setting up, manipulating and handling forms.
@@ -69,6 +74,7 @@ Useful for event handlers like onBlur.
 
 
 import Form.Field as Field exposing (Field)
+import Form.Updatable as Updatable
 import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), validate)
 import Form.Validator exposing (ValidatorSet(..))
 import Json.Decode exposing (field)
@@ -93,7 +99,34 @@ type alias Form b =
     , errBehavior : ErrBehavior
 
     , updatesEnabled : Bool
+    , state : FormState
     }
+
+
+
+{-| A type representing the different states a form can be in.
+
+- FormUnsaved : The form (in it's current state at least) has not been saved.
+- FormSaving : The form is being sent to the server.
+User access should be disabled.
+- FormSaved : The form (in it's current state) has been saved and can be entered
+by the user again.
+- FormDone : The form has been complete and sent, and the user should not enter
+anything more and the UI should move onto something else. User access should be disabled.
+
+
+It doesn't encapsulate one lifecycle, but two potentially different ones.
+
+#### One-time form
+`FormUnsaved` -> `FormSaving` -> `FormDone` (at which point the user cannot edit this anymore and the UI moves to something else)
+
+#### Returning form
+`FormUnsaved` -> `FormSaving` -> `FormSaved` (at which point the user can edit and save the form again)
+
+-}
+type FormState = FormUnsaved | FormSaving | FormSaved | FormDone
+
+
 
 
 
@@ -127,6 +160,7 @@ empty valis fieldValis val =
     , errBehavior = TriggeredValidation
 
     , updatesEnabled = True
+    , state = FormUnsaved
     }
 
 {-| Creates a `Form` that is set up in a state which assumes
@@ -136,6 +170,8 @@ Designed for forms that a user is returning to.
 
 In addition to being `Valid`, the validation behavior is set so that validation errors are set to
 show immediately.
+
+The state of this form has been set to FormSaved (assuming that this has been saved to the server before).
 
     initModel : Model
     initModel =
@@ -159,6 +195,7 @@ prefilled valis fieldValis val =
     , errBehavior = AlwaysValidation -- prefilled forms should keep the user more clued in to errors.
 
     , updatesEnabled = True
+    , state = FormSaved
     }
 
 
@@ -190,26 +227,9 @@ replaceValues form val =
 
 
 {-| Validates every `Field` of a `Form`, then validates the whole `Form` itself.
-
-### Validating the Form itself
-To validate the form itself, you need to create a ValidatorSet for the form
-that checks it's contents to make sure all Fields that are validated are correct.
-
-(Once again, because of Elm's strict type system, each check has to be manually put in.)
-
-```
-formValidators : ValidatorSet ProfileForm
-formValidators =
-    DoValidation
-        [ ( (\r -> isValid r.displayName
-              && isValid r.bio)
-            , "Some of your settings are incorrect."
-            )
-        ]
 ```
 -}
-validate : Form b
-            -> Form b
+validate : Form b -> Form b
 validate form =
     let
         -- validate each field individually first
@@ -227,15 +247,22 @@ validate form =
 
 Currently a weird stopgap to streamine fieldValidation in a Form type.
 -}
-validateFieldInFormVal : FieldGetter a b
+validateField : FieldGetter a b
                 -> FieldSetter a b
                 -> b
                 -> b
-validateFieldInFormVal getter setter formVal =
+validateField getter setter formVal =
     formVal
     |> getter
     |> Validatable.validateAndShowErr
     |> setter formVal
+
+
+
+
+
+
+
 
 
 
@@ -279,22 +306,43 @@ getFieldVal accessor form =
 
 
 
-{-| Checks whether a form can be updated at all.
+{-| Checks whether a form itself can be updated at all.
+If you want to check if a field within a particular form can be updated, use `isFieldUpdatable`.
 -}
 isUpdatable : Form b -> Bool
-isUpdatable form = form.updatesEnabled
+isUpdatable form =
+    let
+        updatesEnabledInState = not <| List.member form.state [FormSaving, FormDone]
+    in
+        form.updatesEnabled && updatesEnabledInState
 
 {-| Checks whether a field in a form can be updated at all.
 -}
 isFieldUpdatable : Form b -> Field a -> Bool
-isFieldUpdatable form field = form.updatesEnabled && form.updatesEnabled
+isFieldUpdatable form field =
+    let
+        updatesEnabledInState = not <| List.member form.state [FormSaving, FormDone]
+    in
+        form.updatesEnabled && field.updatesEnabled && updatesEnabledInState
 
 
-{-| Absorb's an input message and does nothing with it,
-only returning the existing form (inputted).
+{-| Designed to absorb a Field value coming from an input's event handler and do nothing with it,
+only returning the already existing form with the already existing fields that it contains.
 -}
 dontUpdateField : Form b -> a -> Form b
 dontUpdateField form val = form
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -507,12 +555,21 @@ showAnyFieldErr field form setter onChange =
 
 
 
---
--- {-| Starts the process of submitting the form.
--- -}
--- submit : Form a
---             -> (Form b -> msg)
---             -> (a -> msg)
--- submit form submitMsg =
---     form >>
---     Validatable.disableUpdates
+
+{-| Starts the process of submitting the form.
+-}
+submit : Form b
+        -> (Form b -> msg)
+        -> (Form b -> msg)
+        -> msg
+submit form changeMsg submitMsg =
+    let
+        -- check to see if the form is valid
+        -- one last time before moving on
+        validatedForm = validate form
+    in
+        case validatedForm.validity of
+            -- success
+            Valid -> submitMsg validatedForm
+            -- fail
+            _ -> changeMsg validatedForm

@@ -15,10 +15,6 @@ module Form.Validatable exposing ( Validatable
                                  , forceShowErr
                                  , forceHideErr
 
-                                 , enableUpdates
-                                 , disableUpdates
-                                 , toggleUpdates
-
                                  , validate
                                  , validateAndShowErr
                                  , validateAndHideErr
@@ -79,8 +75,6 @@ type alias Validatable a r =
         , errMsg : String
         , errVisibility : ErrVisibility
         , errBehavior : ErrBehavior
-
-        , updatesEnabled : Bool
     }
 
 
@@ -285,31 +279,6 @@ forceShowErr v =
 forceHideErr : Validatable a r -> Validatable a r
 forceHideErr v =
     { v | errVisibility = HideErr }
-
-
-
-
-
-
-
-
-
-
-
-{-| Enables updates in the validatable.
--}
-enableUpdates : Validatable a r -> Validatable a r
-enableUpdates v = { v | updatesEnabled = True }
-
-{-| Disables updates in the validatable.
--}
-disableUpdates : Validatable a r -> Validatable a r
-disableUpdates v = { v | updatesEnabled = False }
-
-{-| Toggles updates in the validatable.
--}
-toggleUpdates : Validatable a r -> Validatable a r
-toggleUpdates v = { v | updatesEnabled = not v.updatesEnabled }
 
 
 

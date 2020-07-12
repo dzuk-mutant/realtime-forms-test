@@ -33,7 +33,7 @@ more complex input structure than typical buttons.
 
 -}
 
-import Form exposing (Form, validate)
+import Form exposing (Form)
 import Form.Validatable as Validatable exposing (Validatable, isValid)
 import Form.Validator as Validator exposing (ValidatorSet)
 import Html exposing (Attribute, Html, button, div, node, span, text)
@@ -181,21 +181,21 @@ type SaveSubmitType
 
 {-| The main data structure for Submit/Save buttons.
 -}
-type alias SubmitSaveStruct msg a =
+type alias SubmitSaveStruct msg b =
     { label : String
-
-    , onChange : Form a -> msg
-    , form : Form a
+    , changeMsg : Form b -> msg
+    , submitMsg : Form b -> msg
+    , form : Form b
     , translations : List Translations
     }
 
 {-| The fundamental structure for submit/save buttons.
 -}
 submitSaveHelper : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> SaveSubmitType
     -> Html msg
-submitSaveHelper attributes { label, onChange, form, translations } btnType =
+submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } btnType =
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
                              ]
@@ -209,7 +209,7 @@ submitSaveHelper attributes { label, onChange, form, translations } btnType =
 
                                 -- stops the button from causing a page refresh when in a <form>
                                 , type_ "button"
-                                , onClick (onChange <| Form.validate form)
+                                , onClick <| Form.submit form changeMsg submitMsg
                                 ]
                                 ++ attributes
                             )
@@ -227,7 +227,7 @@ submitSaveHelper attributes { label, onChange, form, translations } btnType =
 {-| The button used at the end of blank forms that the user submits.
 -}
 submit : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> Html msg
 submit attrs struct = submitSaveHelper attrs struct SubmitButton
 
@@ -235,6 +235,6 @@ submit attrs struct = submitSaveHelper attrs struct SubmitButton
 saves their information with.
 -}
 save : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> Html msg
 save attrs struct = submitSaveHelper attrs struct SaveButton

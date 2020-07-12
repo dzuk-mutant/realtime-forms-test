@@ -13,7 +13,7 @@ module Form.Field exposing ( Field
 @docs Field
 
 # Creating Fields
-@docs empty, prefilled
+@docs empty, prefilled, prefilledDisabled
 
 # Manipulation
 @docs getValue, replaceValue

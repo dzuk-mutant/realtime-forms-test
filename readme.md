@@ -13,4 +13,4 @@ Requires Elm 0.19.1 and uglifyjs to build.
 ----
 
 
-What will eventually be the realtime forms package is in Form.elm and it's various submodules (Field, Validatable, Validator).
+What will eventually be the realtime forms package is in Form.elm and it's various submodules (Field, Validatable, etc.).
