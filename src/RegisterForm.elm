@@ -104,7 +104,6 @@ encoder form =
     Encode.object
         [ ( "username", Encode.string <| Form.getFieldVal .username form )
         , ( "email", Encode.string <| Form.getFieldVal .email form )
-        , ( "tos", Encode.bool <| Form.getFieldVal .tos form )
         ]
 
 
@@ -112,14 +111,10 @@ encoder form =
 -}
 submit : (Result Http.Error () -> msg) -> RegisterForm -> Cmd msg
 submit sendMsg form =
-    Http.request
-        { method = "POST"
-        , headers = []
-        , url = ""
+    Http.post
+        { url = "http://localhost:3000/signup"
         , body = Http.jsonBody <| encoder form
         , expect = Http.expectWhatever sendMsg
-        , timeout = Just (30 * 1000)
-        , tracker = Nothing
         }
 
 

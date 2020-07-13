@@ -4,6 +4,9 @@ module Form exposing ( Form
 
                      , replaceValues
 
+                     , FormState(..)
+                     , changeState
+
                      , validate
                      , validateField
 
@@ -14,6 +17,7 @@ module Form exposing ( Form
 
                      , isUpdatable
                      , isFieldUpdatable
+                     , isSubmissible
 
                      , updateField
                      , updateFieldWithoutValidation
@@ -75,7 +79,8 @@ Useful for event handlers like onBlur.
 
 import Form.Field as Field exposing (Field)
 import Form.Updatable as Updatable
-import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), validate)
+import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), validate, isValid)
+import Http
 import Form.Validator exposing (ValidatorSet(..))
 import Json.Decode exposing (field)
 
@@ -103,28 +108,6 @@ type alias Form b =
     }
 
 
-
-{-| A type representing the different states a form can be in.
-
-- FormUnsaved : The form (in it's current state at least) has not been saved.
-- FormSaving : The form is being sent to the server.
-User access should be disabled.
-- FormSaved : The form (in it's current state) has been saved and can be entered
-by the user again.
-- FormDone : The form has been complete and sent, and the user should not enter
-anything more and the UI should move onto something else. User access should be disabled.
-
-
-It doesn't encapsulate one lifecycle, but two potentially different ones.
-
-#### One-time form
-`FormUnsaved` -> `FormSaving` -> `FormDone` (at which point the user cannot edit this anymore and the UI moves to something else)
-
-#### Returning form
-`FormUnsaved` -> `FormSaving` -> `FormSaved` (at which point the user can edit and save the form again)
-
--}
-type FormState = FormUnsaved | FormSaving | FormSaved | FormDone
 
 
 
@@ -226,6 +209,45 @@ replaceValues form val =
 
 
 
+
+
+{-| A type representing the different states a form can be in.
+
+- FormUnsaved : The form (in it's current state at least) has not been saved.
+- FormSaving : The form is being sent to the server.
+User access should be disabled.
+- FormSaved : The form (in it's current state) has been saved and can be entered
+by the user again.
+- FormDone : The form has been complete and sent, and the user should not enter
+anything more and the UI should move onto something else. User access should be disabled.
+
+
+It doesn't encapsulate one lifecycle, but two potentially different ones.
+
+#### One-time form
+`FormUnsaved` -> `FormSaving` -> `FormDone` (at which point the user cannot edit this anymore and the UI moves to something else)
+
+#### Returning form
+`FormUnsaved` -> `FormSaving` -> `FormSaved` (at which point the user can edit and save the form again)
+
+-}
+type FormState = FormUnsaved | FormSaving | FormSaved | FormDone
+
+
+
+{-| Changes the form state to onoe of your choosing.
+-}
+changeState : FormState -> Form b -> Form b
+changeState newState form = { form | state = newState }
+
+
+
+
+
+
+
+
+
 {-| Validates every `Field` of a `Form`, then validates the whole `Form` itself.
 ```
 -}
@@ -311,10 +333,7 @@ If you want to check if a field within a particular form can be updated, use `is
 -}
 isUpdatable : Form b -> Bool
 isUpdatable form =
-    let
-        updatesEnabledInState = not <| List.member form.state [FormSaving, FormDone]
-    in
-        form.updatesEnabled && updatesEnabledInState
+    form.updatesEnabled && (not <| List.member form.state [FormSaving, FormDone])
 
 {-| Checks whether a field in a form can be updated at all.
 -}
@@ -325,6 +344,10 @@ isFieldUpdatable form field =
     in
         form.updatesEnabled && field.updatesEnabled && updatesEnabledInState
 
+
+isSubmissible : Form b -> Bool
+isSubmissible form =
+    isValid form && (not <| List.member form.state [FormSaving, FormDone])
 
 {-| Designed to absorb a Field value coming from an input's event handler and do nothing with it,
 only returning the already existing form with the already existing fields that it contains.
@@ -563,13 +586,16 @@ submit : Form b
         -> (Form b -> msg)
         -> msg
 submit form changeMsg submitMsg =
-    let
-        -- check to see if the form is valid
-        -- one last time before moving on
-        validatedForm = validate form
-    in
-        case validatedForm.validity of
-            -- success
-            Valid -> submitMsg validatedForm
-            -- fail
-            _ -> changeMsg validatedForm
+    case isUpdatable form of
+        False -> changeMsg form
+        True ->
+            let
+                -- check to see if the form is valid
+                -- one last time before moving on
+                validatedForm = validate form
+            in
+                case isSubmissible validatedForm of
+                    -- success
+                    True -> submitMsg validatedForm
+                    -- fail
+                    False -> changeMsg validatedForm

@@ -33,7 +33,7 @@ more complex input structure than typical buttons.
 
 -}
 
-import Form exposing (Form)
+import Form exposing (Form, FormState(..))
 import Form.Validatable as Validatable exposing (Validatable, isValid)
 import Form.Validator as Validator exposing (ValidatorSet)
 import Html exposing (Attribute, Html, button, div, node, span, text)
@@ -44,16 +44,6 @@ import I18Next exposing (Translations)
 import Svg exposing (Svg)
 import Ui.Label exposing (liveHelperDisabled)
 import Ui.Symbol as Symbol exposing (ok)
-
---------------------
-
-import Form exposing (Form, validate)
-import Form.Validatable as Validatable exposing (Validatable, isValid)
-import Form.Validator as Validator exposing (ValidatorSet)
-
-import Ui.Label exposing (liveHelperDisabled)
-import Ui.Symbol as Symbol exposing (ok)
-
 
 
 {-| The foundation for all buttons in Parastat.
@@ -196,6 +186,13 @@ submitSaveHelper : List (Html.Attribute msg)
     -> SaveSubmitType
     -> Html msg
 submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } btnType =
+    let
+        shownLabel = case form.state of
+            FormUnsaved -> label
+            FormSaving -> "Saving..."
+            FormSaved -> "Saved!"
+            FormDone -> "Done!"
+    in
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
                              ]
@@ -204,7 +201,7 @@ submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } 
                     [ basic
                             (   [ class "ps--btn-lrg-combo"
                                 , classList [ ("end-aligned", btnType == SaveButton)
-                                            , ("disabled", not <| Validatable.isValid form)
+                                            , ("disabled", not <| Form.isSubmissible form)
                                             ]
 
                                 -- stops the button from causing a page refresh when in a <form>
@@ -214,7 +211,7 @@ submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } 
                                 ++ attributes
                             )
                             Nothing
-                            ( Just label )
+                            ( Just shownLabel )
                             Nothing
                     -- sym area for successes
                     -- TBA

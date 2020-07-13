@@ -2,7 +2,7 @@ module Main exposing (main)
 
 
 import Browser exposing (Document)
-import Form
+import Form exposing (FormState(..))
 import Form.Field as Field
 import Language exposing (ScriptDir(..))
 import Model exposing (Model)
@@ -12,6 +12,7 @@ import Theme.Default exposing (darkTheme)
 import Ui exposing (LabelPreference(..), ScrollbarThickness(..), ShapeHinting(..))
 import View
 
+import Debug exposing (log)
 
 main : Program () Model Msg
 main =
@@ -78,4 +79,25 @@ update msg model =
             )
 
         RegisterFormChanged f -> ( { model | registerForm = f } , Cmd.none )
-        RegisterFormSubmitted f -> ( { model | registerForm = f }, Cmd.none )
+
+        RegisterFormSubmitting f ->
+            let
+                thing = Debug.log "Submitting" ""
+            in
+                ( { model | registerForm = Form.changeState FormSaving model.registerForm }
+                , Cmd.batch [ RegisterForm.submit RegisterFormSubmitted f ] )
+
+        RegisterFormSubmitted (Ok ()) ->
+            let
+                thing = Debug.log "Submitted!" ""
+            in
+                ( { model | registerForm = Form.changeState FormDone model.registerForm }
+                , Cmd.none )
+
+        RegisterFormSubmitted (Err err) ->
+            let
+                thing = Debug.log "HTTP error" err
+            in
+                ( { model | registerForm = Form.changeState FormUnsaved model.registerForm }
+                , Cmd.none
+                )
