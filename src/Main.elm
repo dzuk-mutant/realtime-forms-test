@@ -8,8 +8,8 @@ import Http
 import Language exposing (ScriptDir(..))
 import Model exposing (Model)
 import Msg exposing (Msg(..))
-import RegisterForm exposing (init)
-import Theme.Default exposing (darkTheme)
+import RegisterForm
+import Theme.Default
 import Ui exposing (LabelPreference(..), ScrollbarThickness(..), ShapeHinting(..))
 import View
 
@@ -49,7 +49,7 @@ initModel =
     , shapeHinting = LessShapeHinting
     , scrollbarThickness = ThinScrollbars
     , osFonts = False
-    , theme = darkTheme
+    , theme = Theme.Default.darkTheme
 
     , registerForm = RegisterForm.init
     }
