@@ -4,6 +4,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Form exposing (FormState(..))
 import Form.Field as Field
+import Http
 import Language exposing (ScriptDir(..))
 import Model exposing (Model)
 import Msg exposing (Msg(..))
@@ -81,23 +82,16 @@ update msg model =
         RegisterFormChanged f -> ( { model | registerForm = f } , Cmd.none )
 
         RegisterFormSubmitting f ->
-            let
-                thing = Debug.log "Submitting" ""
-            in
-                ( { model | registerForm = Form.changeState FormSaving model.registerForm }
-                , Cmd.batch [ RegisterForm.submit RegisterFormSubmitted f ] )
+            ( { model | registerForm = Form.setSaving model.registerForm }
+            , Cmd.batch [ RegisterForm.submit RegisterFormSubmitted f ]
+            )
 
         RegisterFormSubmitted (Ok ()) ->
-            let
-                thing = Debug.log "Submitted!" ""
-            in
-                ( { model | registerForm = Form.changeState FormDone model.registerForm }
-                , Cmd.none )
+            ( { model | registerForm = Form.setDone model.registerForm }
+            , Cmd.none
+            )
 
         RegisterFormSubmitted (Err err) ->
-            let
-                thing = Debug.log "HTTP error" err
-            in
-                ( { model | registerForm = Form.changeState FormUnsaved model.registerForm }
-                , Cmd.none
-                )
+            ( { model | registerForm = RegisterForm.handleError err model.registerForm }
+            , Cmd.none
+            )

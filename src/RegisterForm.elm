@@ -2,6 +2,7 @@ module RegisterForm exposing ( RegisterForm
                              , view
                              , init
                              , submit
+                             , handleError
                              )
 
 import Html exposing (Html, div, form)
@@ -111,11 +112,33 @@ encoder form =
 -}
 submit : (Result Http.Error () -> msg) -> RegisterForm -> Cmd msg
 submit sendMsg form =
-    Http.post
-        { url = "http://localhost:3000/signup"
+    Http.request
+        { method = "POST"
+        , headers = []
+        , url = "http://localhost:3000/signup"
         , body = Http.jsonBody <| encoder form
         , expect = Http.expectWhatever sendMsg
+        , timeout = Just 30000
+        , tracker = Nothing
         }
+
+
+{-| Error messages!
+-}
+handleError : Http.Error -> RegisterForm -> RegisterForm
+handleError err form =
+    let
+        errMsg = case err of
+            Http.BadUrl url -> "Critical error. Contact your admin about this issue. [Bad URL]"
+            Http.Timeout -> "The server timed out."
+            Http.NetworkError -> "Network error. Check your internet connection, then try again."
+            Http.BadStatus code -> "oh noes! bad status!" ++ (String.fromInt code)
+            Http.BadBody string -> "fine!"
+    in
+        form
+        |> Form.changeState Form.Unsaved
+        |> Form.addHttpErr errMsg
+
 
 
 

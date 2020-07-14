@@ -188,10 +188,10 @@ submitSaveHelper : List (Html.Attribute msg)
 submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } btnType =
     let
         shownLabel = case form.state of
-            FormUnsaved -> label
-            FormSaving -> "Saving..."
-            FormSaved -> "Saved!"
-            FormDone -> "Done!"
+            Form.Unsaved -> label
+            Form.Saving -> "Saving..."
+            Form.Saved -> "Saved!"
+            Form.Done -> "Done!"
     in
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
@@ -219,6 +219,7 @@ submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } 
                     ]
                 ]
             ++ Ui.Label.liveHelperDisabled translations form
+            ++ [ Html.div [] [ Html.text form.httpErr ] ]
             )
 
 {-| The button used at the end of blank forms that the user submits.
