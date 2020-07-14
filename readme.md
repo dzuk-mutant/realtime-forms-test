@@ -1,6 +1,6 @@
 # Realtime Forms Test
 
-A testing ground/example for the WIP realtime-forms package.
+A testing ground/example for the WIP [realtime-forms](https://github.com/dzuk-mutant/realtime-forms) package.
 
 
 - Requires Elm 0.19.1 and uglifyjs to build the client.
