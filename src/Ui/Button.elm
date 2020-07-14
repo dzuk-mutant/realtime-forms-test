@@ -33,7 +33,7 @@ more complex input structure than typical buttons.
 
 -}
 
-import Form exposing (Form, validate)
+import Form exposing (Form, State(..))
 import Form.Validatable as Validatable exposing (Validatable, isValid)
 import Form.Validator as Validator exposing (ValidatorSet)
 import Html exposing (Attribute, Html, button, div, node, span, text)
@@ -44,16 +44,6 @@ import I18Next exposing (Translations)
 import Svg exposing (Svg)
 import Ui.Label exposing (liveHelperDisabled)
 import Ui.Symbol as Symbol exposing (ok)
-
---------------------
-
-import Form exposing (Form, validate)
-import Form.Validatable as Validatable exposing (Validatable, isValid)
-import Form.Validator as Validator exposing (ValidatorSet)
-
-import Ui.Label exposing (liveHelperDisabled)
-import Ui.Symbol as Symbol exposing (ok)
-
 
 
 {-| The foundation for all buttons in Parastat.
@@ -181,21 +171,28 @@ type SaveSubmitType
 
 {-| The main data structure for Submit/Save buttons.
 -}
-type alias SubmitSaveStruct msg a =
+type alias SubmitSaveStruct msg b =
     { label : String
-
-    , onChange : Form a -> msg
-    , form : Form a
+    , changeMsg : Form b -> msg
+    , submitMsg : Form b -> msg
+    , form : Form b
     , translations : List Translations
     }
 
 {-| The fundamental structure for submit/save buttons.
 -}
 submitSaveHelper : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> SaveSubmitType
     -> Html msg
-submitSaveHelper attributes { label, onChange, form, translations } btnType =
+submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } btnType =
+    let
+        shownLabel = case form.state of
+            Form.Unsaved -> label
+            Form.Saving -> "Saving..."
+            Form.Saved -> "Saved!"
+            Form.Done -> "Done!"
+    in
         Html.div [ classList [ ("ps--btn-submit", btnType == SubmitButton)
                              , ("ps--btn-save", btnType == SaveButton)
                              ]
@@ -204,17 +201,17 @@ submitSaveHelper attributes { label, onChange, form, translations } btnType =
                     [ basic
                             (   [ class "ps--btn-lrg-combo"
                                 , classList [ ("end-aligned", btnType == SaveButton)
-                                            , ("disabled", not <| Validatable.isValid form)
+                                            , ("disabled", not <| Form.isSubmissible form)
                                             ]
 
                                 -- stops the button from causing a page refresh when in a <form>
                                 , type_ "button"
-                                , onClick (onChange <| Form.validate form)
+                                , onClick <| Form.submit form changeMsg submitMsg
                                 ]
                                 ++ attributes
                             )
                             Nothing
-                            ( Just label )
+                            ( Just shownLabel )
                             Nothing
                     -- sym area for successes
                     -- TBA
@@ -222,12 +219,13 @@ submitSaveHelper attributes { label, onChange, form, translations } btnType =
                     ]
                 ]
             ++ Ui.Label.liveHelperDisabled translations form
+            ++ [ Html.div [ class "ps--live-helper" ] [ Html.text form.httpErr ] ]
             )
 
 {-| The button used at the end of blank forms that the user submits.
 -}
 submit : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> Html msg
 submit attrs struct = submitSaveHelper attrs struct SubmitButton
 
@@ -235,6 +233,6 @@ submit attrs struct = submitSaveHelper attrs struct SubmitButton
 saves their information with.
 -}
 save : List (Html.Attribute msg)
-    -> SubmitSaveStruct msg a
+    -> SubmitSaveStruct msg b
     -> Html msg
 save attrs struct = submitSaveHelper attrs struct SaveButton

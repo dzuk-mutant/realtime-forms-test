@@ -4,8 +4,18 @@ module Form exposing ( Form
 
                      , replaceValues
 
+                     , State(..)
+                     , changeState
+                     , setDone
+                     , setSaving
+
+                     , isUpdatable
+                     , isFieldUpdatable
+                     , isSubmissible
+                     , addHttpErr
+
                      , validate
-                     , validateFieldInFormVal
+                     , validateField
 
                      , FieldSetter
                      , FieldGetter
@@ -17,6 +27,8 @@ module Form exposing ( Form
                      , updateFieldManually
                      , updateFieldManuallyWithoutValidation
                      , showAnyFieldErr
+
+                     , submit
                      )
 
 {-| Setting up, manipulating and handling forms.
@@ -69,8 +81,11 @@ Useful for event handlers like onBlur.
 
 
 import Form.Field as Field exposing (Field)
-import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), validate)
+import Form.Updatable as Updatable
+import Form.Validatable as Validatable exposing (ErrBehavior(..), ErrVisibility(..), Validity(..), isValid, validate)
 import Form.Validator exposing (ValidatorSet(..))
+import Html exposing (b)
+import Http
 import Json.Decode exposing (field)
 
 
@@ -80,7 +95,13 @@ This is almost the same as `Validatable.Validatable`, but with an extra fieldVal
 This field is a function for basically triggering validation for all the form's fields
 that require validation (as that can't be done automatically).
 
-(See `Form.Validatable.Validatable` to understand the rest of this record structure.)
+See `Form.Validatable.Validatable` to understand most of this record structure,
+for the things that aren't in Validatable:
+
+- updatesEnabled : Boolean saying explicitly whether or not the user can edit or submit the form right now.\
+- state : A custom type (State) describing what stage of the form lifecycle the form is at.
+May also dictate whether or not the user can edit or submit.
+- httpErr : A temporary fix for now for how to display HTTP errors to the user when a form fails to be submitted.
 -}
 type alias Form b =
     { value : b
@@ -93,7 +114,15 @@ type alias Form b =
     , errBehavior : ErrBehavior
 
     , updatesEnabled : Bool
+    , state : State
+
+    -- TEMP: Currently just getting some sort of HTTP errors out.
+    , httpErr : String
     }
+
+
+
+
 
 
 
@@ -127,6 +156,8 @@ empty valis fieldValis val =
     , errBehavior = TriggeredValidation
 
     , updatesEnabled = True
+    , state = Unsaved
+    , httpErr = ""
     }
 
 {-| Creates a `Form` that is set up in a state which assumes
@@ -136,6 +167,8 @@ Designed for forms that a user is returning to.
 
 In addition to being `Valid`, the validation behavior is set so that validation errors are set to
 show immediately.
+
+The state of this form has been set to FormSaved (assuming that this has been saved to the server before).
 
     initModel : Model
     initModel =
@@ -159,6 +192,8 @@ prefilled valis fieldValis val =
     , errBehavior = AlwaysValidation -- prefilled forms should keep the user more clued in to errors.
 
     , updatesEnabled = True
+    , state = Saved
+    , httpErr = ""
     }
 
 
@@ -189,27 +224,114 @@ replaceValues form val =
 
 
 
+
+
+{-| A type representing the different states a form can be in.
+
+- FormUnsaved : The form (in it's current state at least) has not been saved.
+- FormSaving : The form is being sent to the server.
+User access should be disabled.
+- FormSaved : The form (in it's current state) has been saved and can be entered
+by the user again.
+- FormDone : The form has been complete and sent, and the user should not enter
+anything more and the UI should move onto something else. User access should be disabled.
+
+
+It doesn't encapsulate one lifecycle, but two potentially different ones.
+
+#### One-time form
+`FormUnsaved` -> `FormSaving` -> `FormDone` (at which point the user cannot edit this anymore and the UI moves to something else)
+
+#### Returning form
+`FormUnsaved` -> `FormSaving` -> `FormSaved` (at which point the user can edit and save the form again)
+
+-}
+type State = Unsaved | Saving | Saved | Done
+
+
+
+{-| Changes the form state to onoe of your choosing.
+-}
+changeState : State -> Form b -> Form b
+changeState newState form = { form | state = newState }
+
+-- TEMP
+{-| Convenience function that sets the form to Saving
+and erases the last HTTP error message (if any).
+-}
+setSaving : Form b -> Form b
+setSaving form =
+    form
+    |> (\f -> { form | state = Saving } )
+    |> (\f -> { form | httpErr = "" } )
+
+
+-- TEMP
+{-| Convenience function that sets the form to Done.
+-}
+setDone : Form b -> Form b
+setDone form =
+    form
+    |> (\f -> { form | state = Done } )
+
+
+
+{-| Checks whether a form itself can be updated at all.
+If you want to check if a field within a particular form can be updated, use `isFieldUpdatable`.
+-}
+isUpdatable : Form b -> Bool
+isUpdatable form =
+    form.updatesEnabled && (not <| List.member form.state [Saving, Done])
+
+{-| Checks whether a field in a form can be updated at all.
+-}
+isFieldUpdatable : Form b -> Field a -> Bool
+isFieldUpdatable form field =
+    let
+        updatesEnabledInState = not <| List.member form.state [Saving, Done]
+    in
+        form.updatesEnabled && field.updatesEnabled && updatesEnabledInState
+
+
+isSubmissible : Form b -> Bool
+isSubmissible form =
+    isValid form && (not <| List.member form.state [Saving, Done])
+
+{-| Designed to absorb a Field value coming from an input's event handler and do nothing with it,
+only returning the already existing form with the already existing fields that it contains.
+-}
+dontUpdateField : Form b -> a -> Form b
+dontUpdateField form val = form
+
+
+
+{-| TEMP: puts an HTTP error message into the errMsg of the form.
+-}
+addHttpErr : String -> Form b -> Form b
+addHttpErr httpErrMsg form =
+    form
+    |> (\f -> { form | httpErr = httpErrMsg } )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {-| Validates every `Field` of a `Form`, then validates the whole `Form` itself.
-
-### Validating the Form itself
-To validate the form itself, you need to create a ValidatorSet for the form
-that checks it's contents to make sure all Fields that are validated are correct.
-
-(Once again, because of Elm's strict type system, each check has to be manually put in.)
-
-```
-formValidators : ValidatorSet ProfileForm
-formValidators =
-    DoValidation
-        [ ( (\r -> isValid r.displayName
-              && isValid r.bio)
-            , "Some of your settings are incorrect."
-            )
-        ]
 ```
 -}
-validate : Form b
-            -> Form b
+validate : Form b -> Form b
 validate form =
     let
         -- validate each field individually first
@@ -221,21 +343,27 @@ validate form =
 
 
 
-
-
 {-| Validates a field in a form value (and shows errs depending on it's behaviour).
 
 Currently a weird stopgap to streamine fieldValidation in a Form type.
 -}
-validateFieldInFormVal : FieldGetter a b
+validateField : FieldGetter a b
                 -> FieldSetter a b
                 -> b
                 -> b
-validateFieldInFormVal getter setter formVal =
+validateField getter setter formVal =
     formVal
     |> getter
     |> Validatable.validateAndShowErr
     |> setter formVal
+
+
+
+
+
+
+
+
 
 
 
@@ -279,22 +407,11 @@ getFieldVal accessor form =
 
 
 
-{-| Checks whether a form can be updated at all.
--}
-isUpdatable : Form b -> Bool
-isUpdatable form = form.updatesEnabled
-
-{-| Checks whether a field in a form can be updated at all.
--}
-isFieldUpdatable : Form b -> Field a -> Bool
-isFieldUpdatable form field = form.updatesEnabled && form.updatesEnabled
 
 
-{-| Absorb's an input message and does nothing with it,
-only returning the existing form (inputted).
--}
-dontUpdateField : Form b -> a -> Form b
-dontUpdateField form val = form
+
+
+
 
 
 
@@ -507,12 +624,24 @@ showAnyFieldErr field form setter onChange =
 
 
 
---
--- {-| Starts the process of submitting the form.
--- -}
--- submit : Form a
---             -> (Form b -> msg)
---             -> (a -> msg)
--- submit form submitMsg =
---     form >>
---     Validatable.disableUpdates
+
+{-| Starts the process of submitting the form.
+-}
+submit : Form b
+        -> (Form b -> msg)
+        -> (Form b -> msg)
+        -> msg
+submit form changeMsg submitMsg =
+    case isUpdatable form of
+        False -> changeMsg form
+        True ->
+            let
+                -- check to see if the form is valid
+                -- one last time before moving on
+                validatedForm = validate form
+            in
+                case isSubmissible validatedForm of
+                    -- success
+                    True -> submitMsg validatedForm
+                    -- fail
+                    False -> changeMsg validatedForm

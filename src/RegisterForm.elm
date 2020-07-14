@@ -2,13 +2,14 @@ module RegisterForm exposing ( RegisterForm
                              , view
                              , init
                              , submit
+                             , handleError
                              )
 
 import Html exposing (Html, div, form)
 import Html.Attributes exposing (class, spellcheck)
 import Http
 import I18Next exposing (Translations, tf)
-import Form exposing (Form, empty, validateFieldInFormVal)
+import Form exposing (Form, empty, validateField)
 import Form.Field as Field exposing (Field, empty)
 import Form.Validatable as Validatable exposing (isValid)
 import Form.Validator as Validator exposing ( ValidatorSet(..) )
@@ -79,16 +80,16 @@ TODO: Try to make this automatic instead of manual???
 allFieldValidations : RegisterFields -> RegisterFields
 allFieldValidations r =
     r
-    |> validateFieldInFormVal .username (\v x -> { v | username = x })
-    |> validateFieldInFormVal .email (\v x -> { v | email = x })
-    |> validateFieldInFormVal .tos (\v x -> { v | tos = x })
+    |> Form.validateField .username (\v x -> { v | username = x })
+    |> Form.validateField .email (\v x -> { v | email = x })
+    |> Form.validateField .tos (\v x -> { v | tos = x })
 
 
 
 {-| Initialises an empty RegisterForm model for filling in.
 -}
 init = Form.empty formValidators allFieldValidations
-                    { username = Field.prefilled usernameValidators ""
+                    { username = Field.empty usernameValidators ""
                     , email = Field.empty emailValidators ""
                     , tos = Field.empty tosValidators False
                     }
@@ -104,7 +105,6 @@ encoder form =
     Encode.object
         [ ( "username", Encode.string <| Form.getFieldVal .username form )
         , ( "email", Encode.string <| Form.getFieldVal .email form )
-        , ( "tos", Encode.bool <| Form.getFieldVal .tos form )
         ]
 
 
@@ -115,12 +115,30 @@ submit sendMsg form =
     Http.request
         { method = "POST"
         , headers = []
-        , url = ""
+        , url = "http://localhost:3000/signup"
         , body = Http.jsonBody <| encoder form
         , expect = Http.expectWhatever sendMsg
-        , timeout = Just (30 * 1000)
+        , timeout = Just 30000
         , tracker = Nothing
         }
+
+
+{-| Error messages!
+-}
+handleError : Http.Error -> RegisterForm -> RegisterForm
+handleError err form =
+    let
+        errMsg = case err of
+            Http.Timeout -> "The server timed out."
+            Http.NetworkError -> "Parastat can't connect right now. Check your internet connection then try again."
+            Http.BadUrl url -> "Critical network error. Contact the admin about this issue."
+            Http.BadStatus code -> "Critical network error. Contact the admin about this issue."
+            Http.BadBody string -> "Critical network error. Contact the admin about this issue."
+    in
+        form
+        |> Form.changeState Form.Unsaved
+        |> Form.addHttpErr errMsg
+
 
 
 
@@ -144,7 +162,7 @@ view trans changeMsg submitMsg form =
             , helper = Just (tf trans "username-helper")
             , placeholder = Nothing
 
-            , onChange = changeMsg
+            , changeMsg = changeMsg
             , form = form
             , fieldGetter = .username
             , fieldSetter = (\v x -> { v | username = x })
@@ -158,7 +176,7 @@ view trans changeMsg submitMsg form =
             , helper = Just (tf trans "email-helper")
             , placeholder = Just (tf trans "email-placeholder")
 
-            , onChange = changeMsg
+            , changeMsg = changeMsg
             , form = form
             , fieldGetter = .email
             , fieldSetter = (\v x -> { v | email = x })
@@ -180,7 +198,7 @@ view trans changeMsg submitMsg form =
             , label = (tf trans "tos")
             , helper = Nothing
 
-            , onChange = changeMsg
+            , changeMsg = changeMsg
             , form = form
             , fieldGetter = .tos
             , fieldSetter = (\v x -> { v | tos = x })
@@ -189,7 +207,8 @@ view trans changeMsg submitMsg form =
 
         , Button.submit [ class "primary" ]
             { label = (tf trans "sign-up-button")
-            , onChange = submitMsg
+            , changeMsg = changeMsg
+            , submitMsg = submitMsg
             , form = form
             , translations = trans
             }

@@ -43,7 +43,7 @@ This is only for screenreaders - it does not tell sighted users if it's required
 - `fieldSetter`: A function to set this input's data in the form's model.
 
 ## Msg
-- `onChange`: The Msg that gets activated when the form changes.
+- `changeMsg`: The Msg that gets activated when the form changes.
 Use this to keep your form's model in sync with your inputs as they are being edited.
 
 
@@ -165,7 +165,7 @@ type TextInputType
 type alias TextInputStruct msg b =
     { id : String
     , required : Bool
-    , onChange : Form b -> msg
+    , changeMsg : Form b -> msg
     , label : OptionalLabel
     , helper : Maybe String
     , placeholder : Maybe String
@@ -183,9 +183,9 @@ basicTextInput : List (Attribute msg)
         -> Maybe Int
         -> TextInputType
         -> Html msg
-basicTextInput attrs { id, required, label, helper, placeholder, onChange, form, fieldGetter, fieldSetter, translations } counter inputType =
+basicTextInput attrs { id, required, label, helper, placeholder, changeMsg, form, fieldGetter, fieldSetter, translations } counter inputType =
     let
-        realField = getField fieldGetter form
+        field = getField fieldGetter form
 
         maybePlaceholder = case placeholder of
             Just p -> [ Html.Attributes.placeholder p ]
@@ -198,18 +198,19 @@ basicTextInput attrs { id, required, label, helper, placeholder, onChange, form,
                       , ariaHidden True -- should be hidden from screenreaders
                       ]
                     [ div [ class "text" ]
-                        [ Html.text <| (String.fromInt <| String.length realField.value) ++ " / " ++ (String.fromInt c)
+                        [ Html.text <| (String.fromInt <| String.length field.value) ++ " / " ++ (String.fromInt c)
                         ]
                     ]
                 ]
 
         commonInputAttrs =
-            [ value realField.value
-            , onInput <| Form.updateField realField form fieldSetter onChange
-            , onBlur <| Form.showAnyFieldErr realField form fieldSetter onChange
+            [ value field.value
+            , onInput <| Form.updateField field form fieldSetter changeMsg
+            , onBlur <| Form.showAnyFieldErr field form fieldSetter changeMsg
             , Html.Attributes.id id
             , ariaRequired required
-            , classList [ ( "invalid", Validatable.ifShowErr realField )
+            , disabled <| not <| Form.isFieldUpdatable form field
+            , classList [ ( "invalid", Validatable.ifShowErr field )
                         ]
             ]
             ++ attrs
@@ -241,7 +242,7 @@ basicTextInput attrs { id, required, label, helper, placeholder, onChange, form,
                                             ]
                                             ++ commonInputAttrs
                                         )
-                                        [ Html.text realField.value ]
+                                        [ Html.text field.value ]
 
 
                                 MultiLineText ->
@@ -249,15 +250,15 @@ basicTextInput attrs { id, required, label, helper, placeholder, onChange, form,
                                         (   [ class "ps--text-multiline" ]
                                             ++ commonInputAttrs
                                         )
-                                        [ Html.text realField.value ]
+                                        [ Html.text field.value ]
 
-                        , div [ class "ps--sym-area" ] ( maybeInvalidSym realField )
+                        , div [ class "ps--sym-area" ] ( maybeInvalidSym field )
                         ]
                         ++ maybeCounter
                         )
                     ]
                 -- validation error message
-                ++ Label.liveHelperInvalid translations realField
+                ++ Label.liveHelperInvalid translations field
             )
 
 
@@ -362,7 +363,7 @@ checkbox : List (Attribute msg)
            , label : String
            , helper : Maybe String
 
-           , onChange : Form b -> msg
+           , changeMsg : Form b -> msg
            , form : Form b
            , fieldGetter : Form.FieldGetter Bool b
            , fieldSetter : Form.FieldSetter Bool b
@@ -370,14 +371,14 @@ checkbox : List (Attribute msg)
            }
         -> Html msg
 
-checkbox attrs { id, required, label, helper, onChange, form, fieldGetter, fieldSetter, translations } =
+checkbox attrs { id, required, label, helper, changeMsg, form, fieldGetter, fieldSetter, translations } =
     let
-        realField = getField fieldGetter form
+        field = getField fieldGetter form
     in
         Html.fieldset [ class "ps--form-block"]
             [ Html.div
                 [ class "ps--checkbox-wrapper"
-                , classList [ ("invalid", Validatable.ifShowErr realField )
+                , classList [ ("invalid", Validatable.ifShowErr field )
                             ]
                 ]
 
@@ -389,9 +390,10 @@ checkbox attrs { id, required, label, helper, onChange, form, fieldGetter, field
                     [ type_ "checkbox"
                     , class "ps--checkbox"
                     , Html.Attributes.id id
-                    , onCheck <| Form.updateField realField form fieldSetter onChange
-                    , onBlur <| Form.showAnyFieldErr realField form fieldSetter onChange
-                    , checked realField.value
+                    , onCheck <| Form.updateField field form fieldSetter changeMsg
+                    , onBlur <| Form.showAnyFieldErr field form fieldSetter changeMsg
+                    , disabled <| not <| Form.isFieldUpdatable form field
+                    , checked field.value
                     , ariaRequired required
                     , ariaLabel label
                     ]
@@ -415,7 +417,7 @@ checkbox attrs { id, required, label, helper, onChange, form, fieldGetter, field
                 -- helper
                 ++ maybeHelperText helper
                 -- invalid helper
-                ++ Label.liveHelperInvalid translations realField
+                ++ Label.liveHelperInvalid translations field
 
                 )
             ]

@@ -4,14 +4,16 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Form
 import Form.Field as Field
+import Http
 import Language exposing (ScriptDir(..))
 import Model exposing (Model)
 import Msg exposing (Msg(..))
-import RegisterForm exposing (init)
-import Theme.Default exposing (darkTheme)
+import RegisterForm
+import Theme.Default
 import Ui exposing (LabelPreference(..), ScrollbarThickness(..), ShapeHinting(..))
 import View
 
+import Debug exposing (log)
 
 main : Program () Model Msg
 main =
@@ -47,7 +49,7 @@ initModel =
     , shapeHinting = LessShapeHinting
     , scrollbarThickness = ThinScrollbars
     , osFonts = False
-    , theme = darkTheme
+    , theme = Theme.Default.darkTheme
 
     , registerForm = RegisterForm.init
     }
@@ -78,4 +80,18 @@ update msg model =
             )
 
         RegisterFormChanged f -> ( { model | registerForm = f } , Cmd.none )
-        RegisterFormSubmitted f -> ( { model | registerForm = f }, Cmd.none )
+
+        RegisterFormSubmitting f ->
+            ( { model | registerForm = Form.setSaving model.registerForm }
+            , Cmd.batch [ RegisterForm.submit RegisterFormSubmitted f ]
+            )
+
+        RegisterFormSubmitted (Ok ()) ->
+            ( { model | registerForm = Form.setDone model.registerForm }
+            , Cmd.none
+            )
+
+        RegisterFormSubmitted (Err err) ->
+            ( { model | registerForm = RegisterForm.handleError err model.registerForm }
+            , Cmd.none
+            )

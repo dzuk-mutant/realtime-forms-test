@@ -13,7 +13,7 @@ module Form.Field exposing ( Field
 @docs Field
 
 # Creating Fields
-@docs empty, prefilled
+@docs empty, prefilled, prefilledDisabled
 
 # Manipulation
 @docs getValue, replaceValue
@@ -37,7 +37,12 @@ import Form.Validator exposing (ValidatorSet(..))
 {-| A data type enclosing user inputs alongside validation information
 on that input.
 
-(See `Form.Validatable.Validatable` to understand this record structure.)
+See `Form.Validatable.Validatable` to understand most of this record structure.
+
+A thing that isn't in Validatable:
+- updatesEnabled : Boolean saying explicitly whether or not the user can edit
+the field right now. It should be tied to a visual disabled state in the
+input itself (but not the HTML `disabled` attribute - it's not screenreader friendly.)
 -}
 type alias Field a =
     { value : a
