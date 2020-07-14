@@ -129,11 +129,11 @@ handleError : Http.Error -> RegisterForm -> RegisterForm
 handleError err form =
     let
         errMsg = case err of
-            Http.BadUrl url -> "Critical error. Contact your admin about this issue. [Bad URL]"
             Http.Timeout -> "The server timed out."
-            Http.NetworkError -> "Network error. Check your internet connection, then try again."
-            Http.BadStatus code -> "oh noes! bad status!" ++ (String.fromInt code)
-            Http.BadBody string -> "fine!"
+            Http.NetworkError -> "Parastat can't connect right now. Check your internet connection then try again."
+            Http.BadUrl url -> "Critical network error. Contact the admin about this issue."
+            Http.BadStatus code -> "Critical network error. Contact the admin about this issue."
+            Http.BadBody string -> "Critical network error. Contact the admin about this issue."
     in
         form
         |> Form.changeState Form.Unsaved

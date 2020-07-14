@@ -219,7 +219,7 @@ submitSaveHelper attributes { label, changeMsg, submitMsg, form, translations } 
                     ]
                 ]
             ++ Ui.Label.liveHelperDisabled translations form
-            ++ [ Html.div [] [ Html.text form.httpErr ] ]
+            ++ [ Html.div [ class "ps--live-helper" ] [ Html.text form.httpErr ] ]
             )
 
 {-| The button used at the end of blank forms that the user submits.

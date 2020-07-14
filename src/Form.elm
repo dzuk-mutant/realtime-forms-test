@@ -95,7 +95,13 @@ This is almost the same as `Validatable.Validatable`, but with an extra fieldVal
 This field is a function for basically triggering validation for all the form's fields
 that require validation (as that can't be done automatically).
 
-(See `Form.Validatable.Validatable` to understand the rest of this record structure.)
+See `Form.Validatable.Validatable` to understand most of this record structure,
+for the things that aren't in Validatable:
+
+- updatesEnabled : Boolean saying explicitly whether or not the user can edit or submit the form right now.\
+- state : A custom type (FormState) describing what stage of the form lifecycle the form is at.
+May also dictate whether or not the user can edit or submit.
+- httpErr : A temporary fix for now for how to display HTTP errors to the user when a form fails to be submitted.
 -}
 type alias Form b =
     { value : b
@@ -249,8 +255,8 @@ type FormState = Unsaved | Saving | Saved | Done
 changeState : FormState -> Form b -> Form b
 changeState newState form = { form | state = newState }
 
-{-| TEMP
-Convenience function that sets the form to Saving
+-- TEMP
+{-| Convenience function that sets the form to Saving
 and erases the last HTTP error message (if any).
 -}
 setSaving : Form b -> Form b
@@ -260,8 +266,8 @@ setSaving form =
     |> (\f -> { form | httpErr = "" } )
 
 
-{-| TEMP
-Convenience function that sets the form to Done.
+-- TEMP
+{-| Convenience function that sets the form to Done.
 -}
 setDone : Form b -> Form b
 setDone form =
