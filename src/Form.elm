@@ -4,7 +4,7 @@ module Form exposing ( Form
 
                      , replaceValues
 
-                     , FormState(..)
+                     , State(..)
                      , changeState
                      , setDone
                      , setSaving
@@ -99,7 +99,7 @@ See `Form.Validatable.Validatable` to understand most of this record structure,
 for the things that aren't in Validatable:
 
 - updatesEnabled : Boolean saying explicitly whether or not the user can edit or submit the form right now.\
-- state : A custom type (FormState) describing what stage of the form lifecycle the form is at.
+- state : A custom type (State) describing what stage of the form lifecycle the form is at.
 May also dictate whether or not the user can edit or submit.
 - httpErr : A temporary fix for now for how to display HTTP errors to the user when a form fails to be submitted.
 -}
@@ -114,7 +114,7 @@ type alias Form b =
     , errBehavior : ErrBehavior
 
     , updatesEnabled : Bool
-    , state : FormState
+    , state : State
 
     -- TEMP: Currently just getting some sort of HTTP errors out.
     , httpErr : String
@@ -246,13 +246,13 @@ It doesn't encapsulate one lifecycle, but two potentially different ones.
 `FormUnsaved` -> `FormSaving` -> `FormSaved` (at which point the user can edit and save the form again)
 
 -}
-type FormState = Unsaved | Saving | Saved | Done
+type State = Unsaved | Saving | Saved | Done
 
 
 
 {-| Changes the form state to onoe of your choosing.
 -}
-changeState : FormState -> Form b -> Form b
+changeState : State -> Form b -> Form b
 changeState newState form = { form | state = newState }
 
 -- TEMP

@@ -2,7 +2,7 @@ module Main exposing (main)
 
 
 import Browser exposing (Document)
-import Form exposing (FormState(..))
+import Form
 import Form.Field as Field
 import Http
 import Language exposing (ScriptDir(..))

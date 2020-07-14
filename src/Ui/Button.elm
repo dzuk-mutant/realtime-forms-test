@@ -33,7 +33,7 @@ more complex input structure than typical buttons.
 
 -}
 
-import Form exposing (Form, FormState(..))
+import Form exposing (Form, State(..))
 import Form.Validatable as Validatable exposing (Validatable, isValid)
 import Form.Validator as Validator exposing (ValidatorSet)
 import Html exposing (Attribute, Html, button, div, node, span, text)
